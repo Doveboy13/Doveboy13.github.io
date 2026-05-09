@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -12,6 +12,25 @@
   <meta property="og:type" content="profile" />
 
   <title>Jackson Hu · AIPM Resume</title>
+
+  <script>
+    /* Inline anti-flash theme bootstrap. Resolves auto -> light/dark before CSS loads. */
+    (function () {
+      try {
+        var saved = localStorage.getItem('resume-theme') || 'auto';
+        var real = saved;
+        if (saved === 'auto') {
+          var h = new Date().getHours();
+          real = (h >= 7 && h < 19) ? 'light' : 'dark';
+        }
+        document.documentElement.dataset.theme = real;
+        document.documentElement.dataset.themeMode = saved;
+      } catch (e) {
+        document.documentElement.dataset.theme = 'dark';
+        document.documentElement.dataset.themeMode = 'auto';
+      }
+    })();
+  </script>
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -26,6 +45,7 @@
   <div id="progress" aria-hidden="true"></div>
 
   <div class="bg-decor" aria-hidden="true">
+    <div class="bg-mesh"></div>
     <div class="grid"></div>
     <div class="orb orb-1"></div>
     <div class="orb orb-2"></div>
@@ -38,6 +58,10 @@
   </aside>
 
   <div id="actions" role="toolbar" aria-label="页面操作">
+    <button id="btn-theme" class="action-btn ghost" type="button" title="切换主题：自动 / 浅色 / 深色">
+      <span class="theme-icon" aria-hidden="true">⚙️</span>
+      <span class="theme-label">Auto</span>
+    </button>
     <button id="btn-print" class="action-btn" type="button" title="导出 / 打印 PDF">
       <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
         <path fill="currentColor" d="M19 8H5a3 3 0 0 0-3 3v6h4v4h12v-4h4v-6a3 3 0 0 0-3-3zm-3 11H8v-5h8v5zm3-7a1 1 0 1 1 0-2 1 1 0 0 1 0 2zM18 3H6v4h12V3z"/>
@@ -51,6 +75,32 @@
       <span>MD 源文件</span>
     </a>
   </div>
+
+  <aside id="rightbar" aria-label="侧边小组件">
+    <section class="widget widget-clock" id="w-clock" aria-label="时钟与问候">
+      <div class="widget-loading">…</div>
+    </section>
+    <section class="widget widget-weather" id="w-weather" aria-label="天气预报">
+      <div class="widget-head"><span class="widget-eyebrow">WEATHER</span><span class="widget-status" data-status="loading">加载中</span></div>
+      <div class="widget-body"><div class="widget-loading">正在获取位置…</div></div>
+    </section>
+    <section class="widget widget-theme-card" id="w-theme" aria-label="主题模式">
+      <div class="widget-head"><span class="widget-eyebrow">MODE</span></div>
+      <div class="widget-body"></div>
+    </section>
+    <section class="widget widget-radar" id="w-radar" aria-label="技能雷达图">
+      <div class="widget-head"><span class="widget-eyebrow">SKILLS · RADAR</span></div>
+      <div class="widget-body"></div>
+    </section>
+    <section class="widget widget-now" id="w-now" aria-label="Now">
+      <div class="widget-head"><span class="widget-eyebrow">// NOW</span></div>
+      <div class="widget-body"></div>
+    </section>
+    <section class="widget widget-contact" id="w-contact" aria-label="联系方式">
+      <div class="widget-head"><span class="widget-eyebrow">CONTACT</span></div>
+      <div class="widget-body"><div class="widget-loading">加载中…</div></div>
+    </section>
+  </aside>
 
   <main class="layout">
     <article id="resume" class="resume" aria-busy="true">

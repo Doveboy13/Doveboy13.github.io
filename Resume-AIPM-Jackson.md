@@ -1,7 +1,7 @@
 <div class="header">
   <div class="name-row">
     <h1>Jackson Hu</h1>
-    <div class="job-title">AI产品经理 / AI技术产品经理（TPM）</div>
+    <div class="job-title">AI产品经理（AIPM）</div>
   </div>
   <div class="meta">
     深圳｜186-2785-2679｜doverboy1313@gmail.com<br>

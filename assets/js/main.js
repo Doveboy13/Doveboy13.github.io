@@ -8,24 +8,96 @@
   'use strict';
 
   const MD_PATH = 'Resume-AIPM-Jackson.md';
+  const CONFIG_PATH = 'assets/config/site.json';
   const $ = (sel, root) => (root || document).querySelector(sel);
   const $$ = (sel, root) => Array.from((root || document).querySelectorAll(sel));
+
+  const DEFAULT_SITE_CONFIG = {
+    weather: {
+      defaultLat: 22.5431,
+      defaultLon: 114.0579,
+      fallbackCityLabel: '深圳市',
+      nominatimEmail: 'doverboy1313@gmail.com',
+    },
+    skillsRadar: {
+      dimensions: [
+        { id: 'ai_product', label: 'AI 产品', value: 90 },
+        { id: 'backend', label: '后端工程', value: 85 },
+        { id: 'frontend', label: '前端', value: 70 },
+        { id: 'collab', label: '跨团队协同', value: 88 },
+        { id: 'docs', label: '文档表达', value: 92 },
+      ],
+    },
+    now: {
+      updated: '2026-05',
+      items: [
+        { label: '求职状态', text: '开放新机会，可随时到岗' },
+        { label: '在带项目', text: '3D 数字影棚交付方案' },
+        { label: '学习中', text: 'Agent / RAG 工程化、Eval 体系建设' },
+        { label: '阅读', text: '《Generative Deep Learning》' },
+        { label: '兴趣', text: 'AI 创作工具、Workflow 编排' },
+      ],
+    },
+    contact: {
+      wechatId: '',
+      links: [
+        { type: 'mailto', label: '邮箱', href: 'mailto:doverboy1313@gmail.com' },
+        { type: 'url', label: 'GitHub', href: 'https://github.com/Doveboy13' },
+      ],
+    },
+  };
+
+  function cloneDefaultSite() {
+    return JSON.parse(JSON.stringify(DEFAULT_SITE_CONFIG));
+  }
+
+  async function loadSiteConfig() {
+    try {
+      const res = await fetch(CONFIG_PATH, { cache: 'no-cache' });
+      if (!res.ok) return cloneDefaultSite();
+      const j = await res.json();
+      const base = cloneDefaultSite();
+      if (j.weather) Object.assign(base.weather, j.weather);
+      if (j.skillsRadar && Array.isArray(j.skillsRadar.dimensions) && j.skillsRadar.dimensions.length >= 3) {
+        base.skillsRadar.dimensions = j.skillsRadar.dimensions;
+      }
+      if (j.now) {
+        if (j.now.updated) base.now.updated = j.now.updated;
+        if (Array.isArray(j.now.items) && j.now.items.length) base.now.items = j.now.items;
+      }
+      if (j.contact) {
+        if (typeof j.contact.wechatId === 'string') base.contact.wechatId = j.contact.wechatId;
+        if (Array.isArray(j.contact.links) && j.contact.links.length) base.contact.links = j.contact.links;
+      }
+      return base;
+    } catch (e) {
+      console.warn('[SiteConfig] load failed, using defaults:', e);
+      return cloneDefaultSite();
+    }
+  }
 
   document.addEventListener('DOMContentLoaded', init);
 
   async function init() {
     setYear();
+    initTheme();
     bindProgressBar();
 
+    const siteP = loadSiteConfig();
+    const mdP = loadMarkdown();
+    const site = await siteP;
+    initRightbar(site);
+
+    let md;
     try {
-      const md = await loadMarkdown();
-      renderResume(md);
+      md = await mdP;
     } catch (err) {
       console.error('[Resume] load failed:', err);
       showLoadError(err);
       return;
     }
 
+    renderResume(md);
     enhanceDom();
     buildToc();
     bindIntersectionAnims();
@@ -452,43 +524,65 @@
       return;
     }
 
-    sections.forEach((sec) => {
+    const links = [];
+
+    sections.forEach((sec, idx) => {
       const li = document.createElement('li');
       const a = document.createElement('a');
       a.href = '#' + sec.id;
       a.textContent = sec.dataset.title || sec.id;
+      a.dataset.idx = String(idx);
       a.addEventListener('click', (e) => {
         e.preventDefault();
+        // Highlight immediately so first/last short sections respond visually
+        setActive(idx);
         sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
         history.replaceState(null, '', '#' + sec.id);
       });
       li.appendChild(a);
       toc.appendChild(li);
+      links.push(a);
     });
 
     requestAnimationFrame(() => $('#toc').classList.add('is-ready'));
 
-    if ('IntersectionObserver' in window) {
-      const links = $$('#toc .toc-list a');
-      const map = new Map();
-      sections.forEach((s, i) => map.set(s, links[i]));
-
-      const io = new IntersectionObserver(
-        (entries) => {
-          // Pick the topmost intersecting section
-          const visible = entries
-            .filter((e) => e.isIntersecting)
-            .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
-          if (visible.length > 0) {
-            links.forEach((l) => l.classList.remove('is-active'));
-            const link = map.get(visible[0].target);
-            if (link) link.classList.add('is-active');
-          }
-        },
-        { rootMargin: '-30% 0px -60% 0px', threshold: 0 }
-      );
-      sections.forEach((s) => io.observe(s));
+    function setActive(idx) {
+      links.forEach((l, i) => l.classList.toggle('is-active', i === idx));
     }
+
+    /**
+     * scrollY-based detector that always picks exactly one section: the last
+     * section whose top has been scrolled past (with a small offset). This is
+     * robust at top/bottom edges where short sections never reach the middle
+     * of the viewport.
+     */
+    function updateActive() {
+      const y = window.scrollY || document.documentElement.scrollTop;
+      const offset = 160;
+      let idx = 0;
+      for (let i = 0; i < sections.length; i++) {
+        if (sections[i].offsetTop - offset <= y) idx = i;
+        else break;
+      }
+      // Edge case: scrolled to bottom — force-activate the last section
+      const docH = document.documentElement.scrollHeight;
+      const winH = window.innerHeight;
+      if (y + winH >= docH - 2) idx = sections.length - 1;
+      setActive(idx);
+    }
+
+    let raf = 0;
+    const onScroll = () => {
+      if (!raf) {
+        raf = requestAnimationFrame(() => {
+          updateActive();
+          raf = 0;
+        });
+      }
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    updateActive();
   }
 
   /* =========================================================================
@@ -612,4 +706,630 @@
     while ((n = walker.nextNode())) nodes.push(n);
     nodes.forEach(cb);
   }
+
+  /* =========================================================================
+     Theme system (auto / light / dark)
+     ========================================================================= */
+
+  const THEME_KEY = 'resume-theme';
+  const THEME_MODES = ['auto', 'light', 'dark'];
+  const themeListeners = [];
+
+  function getStoredMode() {
+    try {
+      const v = localStorage.getItem(THEME_KEY);
+      return THEME_MODES.includes(v) ? v : 'auto';
+    } catch (e) {
+      return 'auto';
+    }
+  }
+  function setStoredMode(mode) {
+    try { localStorage.setItem(THEME_KEY, mode); } catch (e) { /* noop */ }
+  }
+  function resolveAuto() {
+    const h = new Date().getHours();
+    return (h >= 7 && h < 19) ? 'light' : 'dark';
+  }
+  function nextAutoSwitchHint() {
+    const now = new Date();
+    const h = now.getHours();
+    let target;
+    if (h >= 7 && h < 19) {
+      target = new Date(now); target.setHours(19, 0, 0, 0);
+      return { time: '19:00', goingTo: 'dark' };
+    } else {
+      target = new Date(now);
+      if (h >= 19) target.setDate(target.getDate() + 1);
+      target.setHours(7, 0, 0, 0);
+      return { time: '07:00', goingTo: 'light' };
+    }
+  }
+  function applyTheme() {
+    const mode = getStoredMode();
+    const real = mode === 'auto' ? resolveAuto() : mode;
+    document.documentElement.dataset.theme = real;
+    document.documentElement.dataset.themeMode = mode;
+    updateThemeButton(mode, real);
+    themeListeners.forEach((fn) => { try { fn(mode, real); } catch (e) { /* noop */ } });
+  }
+  function updateThemeButton(mode, real) {
+    const btn = $('#btn-theme');
+    if (!btn) return;
+    const icon = btn.querySelector('.theme-icon');
+    const label = btn.querySelector('.theme-label');
+    const map = {
+      auto: { icon: '⚙️', label: 'Auto' },
+      light: { icon: '☀️', label: 'Light' },
+      dark: { icon: '🌙', label: 'Dark' },
+    };
+    if (icon) icon.textContent = map[mode].icon;
+    if (label) label.textContent = map[mode].label;
+    btn.title = `当前：${map[mode].label}（实际渲染：${real}）· 点击切换`;
+    btn.setAttribute('aria-label', `主题：${map[mode].label}，点击切换`);
+  }
+  function cycleTheme() {
+    const current = getStoredMode();
+    const idx = THEME_MODES.indexOf(current);
+    const next = THEME_MODES[(idx + 1) % THEME_MODES.length];
+    setStoredMode(next);
+    applyTheme();
+  }
+  function onThemeChange(fn) { themeListeners.push(fn); }
+
+  function initTheme() {
+    applyTheme();
+    const btn = $('#btn-theme');
+    if (btn) btn.addEventListener('click', cycleTheme);
+    // Re-evaluate auto mode every minute so it switches at 07:00 / 19:00
+    setInterval(() => {
+      if (getStoredMode() === 'auto') applyTheme();
+    }, 60 * 1000);
+  }
+
+  /* =========================================================================
+     Right sidebar — orchestrator
+     ========================================================================= */
+
+  function initRightbar(site) {
+    if (!$('#rightbar')) return;
+    initClockWidget();
+    initWeatherWidget(site && site.weather);
+    initThemeCardWidget();
+    initRadarWidget(site && site.skillsRadar);
+    initNowWidget(site && site.now);
+    initContactWidget(site && site.contact);
+  }
+
+  /* ---------- Clock + greeting ---------- */
+
+  function initClockWidget() {
+    const root = $('#w-clock');
+    if (!root) return;
+    root.innerHTML = `
+      <div class="clock-greeting"></div>
+      <div class="clock-time"><span class="clock-hm"></span><span class="clock-sec"></span></div>
+      <div class="clock-date"></div>`;
+    const greet = root.querySelector('.clock-greeting');
+    const hm = root.querySelector('.clock-hm');
+    const sec = root.querySelector('.clock-sec');
+    const dateEl = root.querySelector('.clock-date');
+
+    const weekDays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+
+    const greetingFor = (h) => {
+      if (h >= 5 && h < 11) return '早上好 · Good morning';
+      if (h >= 11 && h < 13) return '中午好 · Good noon';
+      if (h >= 13 && h < 18) return '下午好 · Good afternoon';
+      if (h >= 18 && h < 23) return '晚上好 · Good evening';
+      return '夜深了 · Late night';
+    };
+    const pad = (n) => String(n).padStart(2, '0');
+
+    const tick = () => {
+      const d = new Date();
+      hm.textContent = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      sec.textContent = ` :${pad(d.getSeconds())}`;
+      greet.textContent = greetingFor(d.getHours());
+      dateEl.textContent = `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日 · ${weekDays[d.getDay()]}`;
+    };
+    tick();
+    setInterval(tick, 1000);
+  }
+
+  /* ---------- Weather ---------- */
+
+  function initWeatherWidget(weatherCfg) {
+    const root = $('#w-weather');
+    if (!root) return;
+    const status = root.querySelector('.widget-status');
+    const body = root.querySelector('.widget-body');
+
+    const w = weatherCfg || DEFAULT_SITE_CONFIG.weather;
+    const defW = DEFAULT_SITE_CONFIG.weather;
+    const defaultLat = Number.isFinite(Number(w.defaultLat)) ? Number(w.defaultLat) : defW.defaultLat;
+    const defaultLon = Number.isFinite(Number(w.defaultLon)) ? Number(w.defaultLon) : defW.defaultLon;
+    const fallbackCityLabel = w.fallbackCityLabel || defW.fallbackCityLabel || '深圳市';
+    const nominatimEmail = (typeof w.nominatimEmail === 'string' && w.nominatimEmail.trim()) || defW.nominatimEmail || '';
+
+    const setStatus = (s, text) => {
+      if (!status) return;
+      status.dataset.status = s;
+      status.textContent = text;
+    };
+
+    const getCoords = () =>
+      new Promise((resolve) => {
+        const fallback = { lat: defaultLat, lon: defaultLon, usedDefault: true };
+        if (!('geolocation' in navigator)) return resolve(fallback);
+        let done = false;
+        const timer = setTimeout(() => {
+          if (!done) {
+            done = true;
+            resolve(fallback);
+          }
+        }, 5000);
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            if (done) return;
+            done = true;
+            clearTimeout(timer);
+            resolve({
+              lat: pos.coords.latitude,
+              lon: pos.coords.longitude,
+              usedDefault: false,
+            });
+          },
+          () => {
+            if (done) return;
+            done = true;
+            clearTimeout(timer);
+            resolve(fallback);
+          },
+          { enableHighAccuracy: false, timeout: 4500, maximumAge: 10 * 60 * 1000 }
+        );
+      });
+
+    function nominatimDisplayNameShort(displayName, maxLen) {
+      if (!displayName || typeof displayName !== 'string') return '';
+      const parts = displayName
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .slice(0, 3);
+      let s = parts.join(' · ');
+      const n = maxLen == null ? 48 : maxLen;
+      if (s.length > n) s = s.slice(0, n - 1) + '…';
+      return s;
+    }
+
+    function nominatimLocationLabel(j) {
+      if (!j || typeof j !== 'object') return '';
+      const a = j.address || {};
+      const primary =
+        a.municipality ||
+        a.city ||
+        a.town ||
+        a.city_district ||
+        a.district ||
+        a.county ||
+        a.suburb ||
+        a.borough ||
+        a.village ||
+        a.neighbourhood ||
+        a.quarter ||
+        a.hamlet ||
+        '';
+      const parts = [];
+      if (primary) {
+        parts.push(primary);
+        if (a.state && a.state !== primary && !parts.includes(a.state)) parts.push(a.state);
+      } else {
+        if (a.county && a.state) {
+          parts.push(a.county, a.state);
+        } else if (a.state) {
+          parts.push(a.state);
+        } else if (a.county) {
+          parts.push(a.county);
+        }
+        if (a.region && !parts.includes(a.region)) parts.push(a.region);
+      }
+      if (primary && a.region && !parts.includes(a.region) && a.region !== primary) parts.push(a.region);
+      if (a.country && String(a.country_code || '').toLowerCase() !== 'cn' && !parts.includes(a.country)) {
+        parts.push(a.country);
+      }
+      const joined = parts.filter(Boolean).join(' · ');
+      if (joined) return joined;
+      return nominatimDisplayNameShort(j.display_name, 48);
+    }
+
+    function haversineKm(lat1, lon1, lat2, lon2) {
+      const R = 6371;
+      const toRad = (d) => (d * Math.PI) / 180;
+      const dLat = toRad(lat2 - lat1);
+      const dLon = toRad(lon2 - lon1);
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
+    /** BigDataCloud client reverse-geocode (browser, no key). Use within their fair-use terms. */
+    function bigDataCloudLocationLabel(j) {
+      if (!j || typeof j !== 'object') return '';
+      const city = (j.city && String(j.city).trim()) || '';
+      const loc = (j.locality && String(j.locality).trim()) || '';
+      const prov = (j.principalSubdivision && String(j.principalSubdivision).trim()) || '';
+      const parts = [];
+      if (loc && city && loc !== city) parts.push(loc, city);
+      else if (city) parts.push(city);
+      else if (loc) parts.push(loc);
+      if (prov && !parts.includes(prov)) parts.push(prov);
+      return parts.filter(Boolean).join(' · ');
+    }
+
+    async function reverseGeocodeBigDataLabel(lat, lon) {
+      if (location.protocol === 'file:') return '';
+      try {
+        const url =
+          'https://api.bigdatacloud.net/data/reverse-geocode-client' +
+          `?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&localityLanguage=zh`;
+        const res = await fetch(url, { cache: 'no-cache' });
+        if (!res.ok) return '';
+        const j = await res.json();
+        return bigDataCloudLocationLabel(j);
+      } catch (e) {
+        console.warn('[Weather] BigDataCloud reverse geocode failed:', e);
+        return '';
+      }
+    }
+
+    async function reverseGeocodeLabel(lat, lon) {
+      if (location.protocol === 'file:') return '';
+      try {
+        const emailQ = nominatimEmail ? `&email=${encodeURIComponent(nominatimEmail)}` : '';
+        const url =
+          'https://nominatim.openstreetmap.org/reverse?format=jsonv2' +
+          `&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}&accept-language=zh${emailQ}`;
+        const res = await fetch(url, {
+          cache: 'no-cache',
+          headers: { 'Accept-Language': 'zh-CN, zh;q=0.9, en;q=0.8' },
+        });
+        if (!res.ok) return '';
+        const j = await res.json();
+        return nominatimLocationLabel(j);
+      } catch (e) {
+        console.warn('[Weather] reverse geocode failed:', e);
+        return '';
+      }
+    }
+
+    async function fetchWeatherJson(lat, lon) {
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat.toFixed(3)}&longitude=${lon.toFixed(3)}&current=temperature_2m,weather_code,relative_humidity_2m&daily=temperature_2m_max,temperature_2m_min,weather_code&timezone=auto&forecast_days=3`;
+      const res = await fetch(url, { cache: 'no-cache' });
+      if (!res.ok) throw new Error('weather http ' + res.status);
+      return res.json();
+    }
+
+    async function fetchWeatherWithRetry(lat, lon, retries) {
+      let last;
+      const n = retries == null ? 2 : retries;
+      for (let i = 0; i <= n; i++) {
+        try {
+          return await fetchWeatherJson(lat, lon);
+        } catch (e) {
+          last = e;
+          if (i < n) await new Promise((r) => setTimeout(r, 450 * (i + 1)));
+        }
+      }
+      throw last;
+    }
+
+    const render = (data, locLabel) => {
+      const cur = data.current || {};
+      const daily = data.daily || {};
+      const code = cur.weather_code;
+      const meta = wmoMeta(code);
+      const t = Math.round(cur.temperature_2m);
+      const rh = cur.relative_humidity_2m;
+
+      const days = (daily.time || []).slice(0, 3).map((d, i) => {
+        const dt = new Date(d);
+        const labels = ['今天', '明天', '后天'];
+        const m = wmoMeta(daily.weather_code[i]);
+        return `
+          <div class="forecast-day">
+            <span class="fd-label">${labels[i] || dt.getMonth() + 1 + '/' + dt.getDate()}</span>
+            <span class="fd-icon" title="${m.label}">${m.icon}</span>
+            <span class="fd-temp">${Math.round(daily.temperature_2m_max[i])}° <span class="fd-min">${Math.round(
+          daily.temperature_2m_min[i]
+        )}°</span></span>
+          </div>`;
+      }).join('');
+
+      body.innerHTML = `
+        <div class="weather-current">
+          <div class="weather-icon" title="${meta.label}">${meta.icon}</div>
+          <div class="weather-current-text">
+            <div class="weather-temp">${t}<sup>°C</sup></div>
+            <div class="weather-desc">${meta.label}${rh != null ? ` · 湿度 ${rh}%` : ''}</div>
+            <span class="weather-loc">📍 ${escapeHtml(locLabel)}</span>
+          </div>
+        </div>
+        <div class="weather-forecast">${days}</div>`;
+      setStatus('ok', '已更新');
+    };
+
+    const renderUnavailable = (locLabel) => {
+      body.innerHTML = `
+        <div class="weather-current weather-current--unavailable">
+          <div class="weather-icon" title="暂不可用">🌡️</div>
+          <div class="weather-current-text">
+            <div class="weather-temp">—<sup>°C</sup></div>
+            <div class="weather-desc">天气暂不可用</div>
+            <span class="weather-loc">📍 ${escapeHtml(locLabel)}</span>
+          </div>
+        </div>
+        <div class="weather-forecast weather-forecast--placeholder" aria-hidden="true">
+          <div class="forecast-day"><span class="fd-label">今天</span><span class="fd-icon">—</span><span class="fd-temp">—</span></div>
+          <div class="forecast-day"><span class="fd-label">明天</span><span class="fd-icon">—</span><span class="fd-temp">—</span></div>
+          <div class="forecast-day"><span class="fd-label">后天</span><span class="fd-icon">—</span><span class="fd-temp">—</span></div>
+        </div>`;
+      setStatus('error', '暂不可用');
+    };
+
+    (async () => {
+      try {
+        setStatus('loading', '定位中');
+        const c = await getCoords();
+        setStatus('loading', '解析位置');
+        let geoLabel = await reverseGeocodeLabel(c.lat, c.lon);
+        if (!geoLabel) geoLabel = await reverseGeocodeBigDataLabel(c.lat, c.lon);
+        if (!geoLabel) {
+          if (c.usedDefault) {
+            geoLabel = fallbackCityLabel;
+          } else if (haversineKm(c.lat, c.lon, defaultLat, defaultLon) <= 80) {
+            geoLabel = fallbackCityLabel;
+          } else {
+            geoLabel = '无法取得地名';
+          }
+        }
+
+        setStatus('loading', '获取中');
+        try {
+          const data = await fetchWeatherWithRetry(c.lat, c.lon, 2);
+          render(data, geoLabel);
+        } catch (err) {
+          console.warn('[Weather] forecast failed:', err);
+          renderUnavailable(geoLabel);
+        }
+      } catch (err) {
+        console.warn('[Weather] failed:', err);
+        body.innerHTML = `<div class="widget-loading">天气加载失败<br>请稍后再试</div>`;
+        setStatus('error', '离线');
+      }
+    })();
+  }
+
+  function wmoMeta(code) {
+    // WMO Weather interpretation codes
+    // https://open-meteo.com/en/docs
+    const map = {
+      0: { icon: '☀️', label: '晴' },
+      1: { icon: '🌤️', label: '基本晴朗' },
+      2: { icon: '⛅', label: '局部多云' },
+      3: { icon: '☁️', label: '阴' },
+      45: { icon: '🌫️', label: '雾' }, 48: { icon: '🌫️', label: '冻雾' },
+      51: { icon: '🌦️', label: '小毛毛雨' }, 53: { icon: '🌦️', label: '毛毛雨' }, 55: { icon: '🌧️', label: '大毛毛雨' },
+      56: { icon: '🌧️', label: '冻毛毛雨' }, 57: { icon: '🌧️', label: '强冻毛毛雨' },
+      61: { icon: '🌧️', label: '小雨' }, 63: { icon: '🌧️', label: '中雨' }, 65: { icon: '🌧️', label: '大雨' },
+      66: { icon: '🌧️', label: '冻雨' }, 67: { icon: '🌧️', label: '强冻雨' },
+      71: { icon: '🌨️', label: '小雪' }, 73: { icon: '🌨️', label: '中雪' }, 75: { icon: '❄️', label: '大雪' },
+      77: { icon: '❄️', label: '雪粒' },
+      80: { icon: '🌦️', label: '阵雨' }, 81: { icon: '🌧️', label: '中阵雨' }, 82: { icon: '⛈️', label: '强阵雨' },
+      85: { icon: '🌨️', label: '小阵雪' }, 86: { icon: '❄️', label: '大阵雪' },
+      95: { icon: '⛈️', label: '雷雨' }, 96: { icon: '⛈️', label: '雷雨伴小冰雹' }, 99: { icon: '⛈️', label: '雷雨伴大冰雹' },
+    };
+    return map[code] || { icon: '🌡️', label: '未知' };
+  }
+
+  /* ---------- Theme card ---------- */
+
+  function initThemeCardWidget() {
+    const root = $('#w-theme');
+    if (!root) return;
+    const body = root.querySelector('.widget-body');
+
+    const render = (mode, real) => {
+      const map = {
+        auto: { icon: '⚙️', label: 'Auto · 跟随时间' },
+        light: { icon: '☀️', label: 'Light · 已锁定' },
+        dark: { icon: '🌙', label: 'Dark · 已锁定' },
+      };
+      let detail;
+      if (mode === 'auto') {
+        const hint = nextAutoSwitchHint();
+        detail = `下次切换 ${hint.time} → ${hint.goingTo === 'dark' ? '深色' : '浅色'}`;
+      } else {
+        detail = `点击卡片或右上按钮切换`;
+      }
+      body.innerHTML = `
+        <div class="tc-row">
+          <div class="tc-icon">${map[mode].icon}</div>
+          <div class="tc-info">
+            <div class="tc-mode">${map[mode].label}</div>
+            <div class="tc-detail">${detail} · 当前：${real === 'dark' ? '深色' : '浅色'}</div>
+          </div>
+        </div>`;
+    };
+
+    root.addEventListener('click', cycleTheme);
+    root.style.cursor = 'pointer';
+
+    onThemeChange(render);
+    render(getStoredMode(), document.documentElement.dataset.theme || 'dark');
+  }
+
+  /* ---------- Skills radar ---------- */
+
+  function initRadarWidget(radarCfg) {
+    const root = $('#w-radar');
+    if (!root) return;
+    const body = root.querySelector('.widget-body');
+
+    let dims = (radarCfg && radarCfg.dimensions) || DEFAULT_SITE_CONFIG.skillsRadar.dimensions;
+    dims = dims.map((d) => ({
+      label: d.label || '',
+      value: Math.max(0, Math.min(100, Number(d.value) || 0)),
+    }));
+
+    const innerW = 232;
+    const innerH = 256;
+    const padX = 44;
+    const padY = 40;
+    const vbMinX = -padX;
+    const vbMinY = -padY;
+    const vbW = innerW + padX * 2;
+    const vbH = innerH + padY * 2;
+    const cx = innerW / 2;
+    const cy = innerH / 2 - 4;
+    const radius = 64;
+    const labelR = radius + 24;
+    const N = dims.length;
+
+    const point = (r, i) => {
+      const angle = -Math.PI / 2 + (Math.PI * 2 * i) / N;
+      return [cx + r * Math.cos(angle), cy + r * Math.sin(angle)];
+    };
+
+    const rings = [0.25, 0.5, 0.75, 1]
+      .map((f) => {
+        const pts = dims
+          .map((_, i) => point(radius * f, i).join(','))
+          .join(' ');
+        return `<polygon class="radar-grid" points="${pts}" />`;
+      })
+      .join('');
+
+    const axes = dims
+      .map((_, i) => {
+        const [x, y] = point(radius, i);
+        return `<line class="radar-axis" x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" />`;
+      })
+      .join('');
+
+    const shapePts = dims.map((d, i) => point(radius * (d.value / 100), i).join(',')).join(' ');
+
+    const verts = dims
+      .map((d, i) => {
+        const [x, y] = point(radius * (d.value / 100), i);
+        return `<circle class="radar-point" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.5" />`;
+      })
+      .join('');
+
+    const labels = dims
+      .map((d, i) => {
+        const [lx, ly] = point(labelR, i);
+        const angle = -Math.PI / 2 + (Math.PI * 2 * i) / N;
+        let anchor = 'middle';
+        if (Math.cos(angle) > 0.3) anchor = 'start';
+        else if (Math.cos(angle) < -0.3) anchor = 'end';
+        let baselineY = ly;
+        if (Math.sin(angle) < -0.45) baselineY -= 4;
+        else if (Math.sin(angle) > 0.45) baselineY += 6;
+        const safeLabel = escapeHtml(d.label);
+        return `
+        <text class="radar-label-group" x="${lx.toFixed(1)}" y="${baselineY.toFixed(1)}" text-anchor="${anchor}">
+          <tspan class="radar-label" x="${lx.toFixed(1)}" dy="0">${safeLabel}</tspan>
+          <tspan class="radar-value" x="${lx.toFixed(1)}" dy="1.15em">${d.value}</tspan>
+        </text>`;
+      })
+      .join('');
+
+    body.innerHTML = `
+      <svg viewBox="${vbMinX} ${vbMinY} ${vbW} ${vbH}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="技能雷达图">
+        <defs>
+          <linearGradient id="radarGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#7c3aed" stop-opacity="0.55" />
+            <stop offset="100%" stop-color="#06b6d4" stop-opacity="0.45" />
+          </linearGradient>
+        </defs>
+        ${rings}
+        ${axes}
+        <polygon class="radar-shape" points="${shapePts}" />
+        ${verts}
+        ${labels}
+      </svg>`;
+  }
+
+  /* ---------- Now ---------- */
+
+  function initNowWidget(nowCfg) {
+    const root = $('#w-now');
+    if (!root) return;
+    const body = root.querySelector('.widget-body');
+
+    const cfg = nowCfg || DEFAULT_SITE_CONFIG.now;
+    const items = Array.isArray(cfg.items) && cfg.items.length ? cfg.items : DEFAULT_SITE_CONFIG.now.items;
+    const updated = cfg.updated || DEFAULT_SITE_CONFIG.now.updated;
+
+    body.innerHTML = `
+      <ul class="now-list">
+        ${items
+          .map(
+            (it) =>
+              `<li><span class="now-label">${escapeHtml(it.label || '')}</span><span class="now-text">${escapeHtml(
+                it.text || ''
+              )}</span></li>`
+          )
+          .join('')}
+      </ul>
+      <div class="now-updated">UPDATED · ${escapeHtml(updated)}</div>`;
+  }
+
+  /* ---------- Contact links + optional WeChat copy ---------- */
+
+  function initContactWidget(contactCfg) {
+    const root = $('#w-contact');
+    if (!root) return;
+    const body = root.querySelector('.widget-body');
+    const cfg = contactCfg || DEFAULT_SITE_CONFIG.contact;
+    const links = Array.isArray(cfg.links) ? cfg.links : [];
+    const wechatId = typeof cfg.wechatId === 'string' ? cfg.wechatId.trim() : '';
+
+    let html = '<div class="contact-actions">';
+    links.forEach((link) => {
+      const href = link.href || '#';
+      const label = escapeHtml(link.label || href);
+      const safeHref = escapeHtml(href);
+      const isMail = link.type === 'mailto' || /^mailto:/i.test(href);
+      const external = isMail ? '' : ' target="_blank" rel="noopener noreferrer"';
+      html += `<a class="contact-link-btn" href="${safeHref}"${external}>${label}</a>`;
+    });
+    if (wechatId) {
+      html += `<button type="button" class="contact-link-btn contact-wechat-btn">微信 · 点击复制</button>`;
+    }
+    html += '</div>';
+    body.innerHTML = html;
+
+    const wxBtn = body.querySelector('.contact-wechat-btn');
+    if (wxBtn && wechatId) {
+      const defaultLabel = '微信 · 点击复制';
+      wxBtn.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(wechatId);
+          wxBtn.textContent = '已复制';
+          setTimeout(() => {
+            wxBtn.textContent = defaultLabel;
+          }, 2000);
+        } catch (e) {
+          console.warn('[Contact] clipboard failed:', e);
+          wxBtn.textContent = '复制失败';
+          setTimeout(() => {
+            wxBtn.textContent = defaultLabel;
+          }, 2000);
+        }
+      });
+    }
+  }
+
 })();

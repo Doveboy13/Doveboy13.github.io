@@ -1,0 +1,34 @@
+{
+  "weather": {
+    "defaultLat": 22.5431,
+    "defaultLon": 114.0579,
+    "fallbackCityLabel": "深圳市",
+    "nominatimEmail": "doverboy1313@gmail.com"
+  },
+  "skillsRadar": {
+    "dimensions": [
+      { "id": "ai_product", "label": "AI 产品", "value": 90 },
+      { "id": "backend", "label": "后端工程", "value": 85 },
+      { "id": "frontend", "label": "前端", "value": 70 },
+      { "id": "collab", "label": "跨团队协同", "value": 90 },
+      { "id": "docs", "label": "文档表达", "value": 90 }
+    ]
+  },
+  "now": {
+    "updated": "2026-05",
+    "items": [
+      { "label": "求职状态", "text": "开放新机会，可随时到岗" },
+      { "label": "在带项目", "text": "3D 数字影棚交付方案" },
+      { "label": "学习中", "text": "Agent / RAG 工程化、Eval 体系建设" },
+      { "label": "阅读", "text": "《Generative Deep Learning》" },
+      { "label": "兴趣", "text": "AI 创作工具、Workflow 编排" }
+    ]
+  },
+  "contact": {
+    "wechatId": "",
+    "links": [
+      { "type": "mailto", "label": "邮箱", "href": "mailto:doverboy1313@gmail.com" },
+      { "type": "url", "label": "GitHub", "href": "https://github.com/Doveboy13" }
+    ]
+  }
+}
