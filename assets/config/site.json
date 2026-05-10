@@ -18,10 +18,9 @@
     "updated": "2026-05",
     "items": [
       { "label": "求职状态", "text": "开放新机会，可随时到岗" },
-      { "label": "在带项目", "text": "3D 数字影棚交付方案" },
-      { "label": "学习中", "text": "Agent / RAG 工程化、Eval 体系建设" },
-      { "label": "阅读", "text": "《Generative Deep Learning》" },
-      { "label": "兴趣", "text": "AI 创作工具、Workflow 编排" }
+      { "label": "新型AI概念项目", "text": "3D 数字影棚" },
+      { "label": "学习中", "text": "Agent skills、生成式通用 Eval 体系" },
+      { "label": "阅读中", "text": "《Generative Deep Learning》by O’Reilly" }
     ]
   },
   "contact": {
