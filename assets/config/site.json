@@ -8,10 +8,10 @@
   "skillsRadar": {
     "dimensions": [
       { "id": "ai_product", "label": "AI 产品", "value": 90 },
-      { "id": "backend", "label": "后端工程", "value": 85 },
-      { "id": "frontend", "label": "前端", "value": 70 },
-      { "id": "collab", "label": "跨团队协同", "value": 90 },
-      { "id": "docs", "label": "文档表达", "value": 90 }
+      { "id": "backend", "label": "后端工程", "value": 90 },
+      { "id": "frontend", "label": "前端工程", "value": 80 },
+      { "id": "collab", "label": "跨团队协同", "value": 85 },
+      { "id": "docs", "label": "文档表达", "value": 85 }
     ]
   },
   "now": {
