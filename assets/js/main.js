@@ -296,7 +296,12 @@
       });
     });
 
-    document.addEventListener('click', () => closeMenu());
+    document.addEventListener('click', (ev) => {
+      if (menu.hidden) return;
+      const el = ev.target;
+      if (btn.contains(el) || menu.contains(el)) return;
+      closeMenu();
+    });
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && !menu.hidden) {
         closeMenu();

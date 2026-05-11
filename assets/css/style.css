@@ -1378,7 +1378,7 @@ a:hover { color: var(--accent-4); }
   html, body { font-size: 15.5px; line-height: 1.75; }
 
   .layout {
-    padding: var(--space-6) var(--space-4) var(--space-5);
+    padding: var(--space-6) var(--space-4) calc(var(--space-5) + 56px + env(safe-area-inset-bottom, 0px));
   }
 
   .resume .header {
@@ -1413,15 +1413,47 @@ a:hover { color: var(--accent-4); }
 
   #actions {
     top: auto;
-    bottom: var(--space-4);
-    right: var(--space-3);
+    bottom: max(var(--space-4), env(safe-area-inset-bottom, 0px));
+    right: max(var(--space-3), env(safe-area-inset-right, 0px));
   }
-  .action-btn span { display: none; }
-  .action-btn {
+
+  /* 僅隱藏文字標籤，保留 🌐 / ⚙️ 與各按鈕內 SVG */
+  #actions .action-btn-label {
+    display: none !important;
+  }
+
+  #actions .action-btn {
     width: 40px;
     height: 40px;
     padding: 0;
     justify-content: center;
+    box-shadow: var(--shadow-sm);
+  }
+
+  /* 行動端列印鈕與 ghost 同權重，避免實心漸層視覺過強 */
+  #actions #btn-print {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  #actions #btn-print:hover {
+    transform: translateY(-2px);
+    border-color: var(--border-strong);
+    background: var(--surface-hover);
+    color: var(--accent-3);
+    box-shadow: var(--shadow-md);
+  }
+  #actions #btn-print:active {
+    transform: translateY(0);
+  }
+
+  /* 工具列在螢幕底部時，語言選單改為向上展開，避免開在視窗外無法操作 */
+  .action-lang .lang-menu {
+    top: auto;
+    bottom: calc(100% + 8px);
+    right: 0;
   }
 }
 
