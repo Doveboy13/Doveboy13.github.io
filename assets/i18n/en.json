@@ -1,0 +1,165 @@
+{
+  "meta": {
+    "title": "Jackson Hu · AIPM Resume",
+    "description": "Jackson Hu · AI Product Manager / AI Technical Program Manager — resume"
+  },
+  "loading": { "resume": "Loading resume…", "widget": "Loading…" },
+  "actions": {
+    "widgets": "Widgets",
+    "widgetsTitle": "Open sidebar (weather, contact, etc.)",
+    "widgetsAria": "Open sidebar widgets",
+    "themeTitle": "Cycle theme: Auto / Light / Dark",
+    "themeAria": "Theme and appearance",
+    "printTitle": "Export / print PDF",
+    "printAria": "Export or print as PDF",
+    "print": "Download PDF",
+    "sourceTitle": "View Markdown source",
+    "sourceAria": "Open Markdown source for this language in a new tab",
+    "source": "MD source"
+  },
+  "toolbarAria": "Page actions",
+  "toc": { "title": "Contents", "asideAria": "Table of contents" },
+  "rightbar": {
+    "asideAria": "Sidebar widgets",
+    "clockAria": "Clock and greeting",
+    "weatherAria": "Weather",
+    "themeAria": "Theme mode",
+    "radarAria": "Skills radar chart",
+    "nowAria": "Now",
+    "contactAria": "Contact"
+  },
+  "footer": {
+    "built": "Built with Markdown · © {year} Jackson Hu",
+    "ghpages": "GitHub Pages",
+    "viewSource": "View source"
+  },
+  "error": {
+    "loadTitle": "Failed to load resume:",
+    "loadHint": "For local preview run: python -m http.server 8000 then open http://localhost:8000.",
+    "fileProtocol": "Browsers block fetch for local files when opened as file://.\nUse python -m http.server or deploy to GitHub Pages.",
+    "mdLoad": "Could not load {path} (HTTP {status})",
+    "weatherLoad": "Weather failed to load",
+    "weatherRetry": "Try again later",
+    "weatherOffline": "Offline"
+  },
+  "theme": {
+    "toolbarAuto": "Auto",
+    "toolbarLight": "Light",
+    "toolbarDark": "Dark",
+    "toolbarTitle": "Current: {mode} (rendering: {real}) · click to cycle",
+    "toolbarAria": "Theme: {mode}, click to cycle",
+    "cardAuto": "Auto · follow time",
+    "cardLight": "Light · locked",
+    "cardDark": "Dark · locked",
+    "cardDetailAuto": "Next switch {time} → {next}",
+    "cardDetailLocked": "Click this card or the top-right button to switch",
+    "cardCurrent": "Now: {theme}",
+    "themeDark": "dark",
+    "themeLight": "light"
+  },
+  "clock": {
+    "greetingNight": "Good night · Late night",
+    "greetingMorning": "Good morning",
+    "greetingNoon": "Good noon",
+    "greetingAfternoon": "Good afternoon",
+    "greetingEvening": "Good evening",
+    "week0": "Sun",
+    "week1": "Mon",
+    "week2": "Tue",
+    "week3": "Wed",
+    "week4": "Thu",
+    "week5": "Fri",
+    "week6": "Sat"
+  },
+  "weather": {
+    "statusLocating": "Locating…",
+    "statusGeocode": "Resolving place…",
+    "statusFetching": "Fetching…",
+    "statusOk": "Updated",
+    "statusError": "Unavailable",
+    "statusOffline": "Offline",
+    "loadingBody": "Getting location…",
+    "humidity": "Humidity {rh}%",
+    "geoUnknown": "Place unknown",
+    "day0": "Today",
+    "day1": "Tomorrow",
+    "day2": "Day after",
+    "unavailableTitle": "Unavailable",
+    "unavailableDesc": "Weather unavailable",
+    "forecastNA": "—",
+    "refreshTitle": "Refresh location and weather",
+    "refreshAria": "Refresh location and weather"
+  },
+  "wmo": {
+    "0": "Clear",
+    "1": "Mainly clear",
+    "2": "Partly cloudy",
+    "3": "Overcast",
+    "45": "Fog",
+    "48": "Depositing rime fog",
+    "51": "Light drizzle",
+    "53": "Drizzle",
+    "55": "Dense drizzle",
+    "56": "Freezing drizzle",
+    "57": "Dense freezing drizzle",
+    "61": "Slight rain",
+    "63": "Rain",
+    "65": "Heavy rain",
+    "66": "Freezing rain",
+    "67": "Heavy freezing rain",
+    "71": "Slight snow",
+    "73": "Snow",
+    "75": "Heavy snow",
+    "77": "Snow grains",
+    "80": "Rain showers",
+    "81": "Moderate showers",
+    "82": "Violent showers",
+    "85": "Snow showers",
+    "86": "Heavy snow showers",
+    "95": "Thunderstorm",
+    "96": "Thunderstorm with slight hail",
+    "99": "Thunderstorm with heavy hail",
+    "unknown": "Unknown"
+  },
+  "contact": {
+    "wechatCopy": "WeChat · tap to copy",
+    "wechatCopied": "Copied",
+    "wechatFail": "Copy failed"
+  },
+  "resume": {
+    "keywordLabel": "Keywords:",
+    "chipPhoneAria": "Phone — tap to reveal and copy",
+    "chipEmailAria": "Email — tap to reveal and copy",
+    "chipTitle": "Tap to reveal and copy",
+    "chipUnlock": "Tap to reveal",
+    "chipShown": "Shown · tap to copy",
+    "chipCopied": "Copied ✓",
+    "chipCopyFail": "Copy failed",
+    "chipCopyAgain": "Tap to copy"
+  },
+  "now": { "updatedLabel": "UPDATED ·" },
+  "radar": { "svgAria": "Skills radar chart" },
+  "widgets": {
+    "eyebrowWeather": "WEATHER",
+    "eyebrowMode": "MODE",
+    "eyebrowRadar": "SKILLS · RADAR",
+    "eyebrowNow": "// NOW",
+    "eyebrowContact": "CONTACT"
+  },
+  "nowWidget": {
+    "items": [
+      { "label": "Job search", "text": "Open to new roles · available soon" },
+      { "label": "Concept project", "text": "3D virtual studio" },
+      { "label": "Learning", "text": "Agent skills · generative eval systems" },
+      { "label": "Reading", "text": "Generative Deep Learning (O’Reilly)" }
+    ]
+  },
+  "radarDims": {
+    "ai_product": "AI product",
+    "backend": "Backend",
+    "frontend": "Frontend",
+    "collab": "Cross-team",
+    "docs": "Docs & writing"
+  },
+  "contactLinks": [{ "label": "Email" }, { "label": "GitHub" }]
+}

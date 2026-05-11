@@ -1,0 +1,165 @@
+{
+  "meta": {
+    "title": "Jackson Hu · AIPM 简历",
+    "description": "Jackson Hu · AI 产品经理 / AI 技术产品经理（TPM）个人简历"
+  },
+  "loading": { "resume": "正在加载简历…", "widget": "加载中…" },
+  "actions": {
+    "widgets": "小组件",
+    "widgetsTitle": "打开侧边小组件（天气、联系方式等）",
+    "widgetsAria": "打开侧边小组件",
+    "themeTitle": "切换主题：自动 / 浅色 / 深色",
+    "themeAria": "主题与外观",
+    "printTitle": "导出 / 打印 PDF",
+    "printAria": "导出或打印为 PDF",
+    "print": "下载 PDF",
+    "sourceTitle": "查看 Markdown 源文件",
+    "sourceAria": "在新标签页打开当前语言的 Markdown 源文件",
+    "source": "MD 源文件"
+  },
+  "toolbarAria": "页面操作",
+  "toc": { "title": "目录", "asideAria": "目录导航" },
+  "rightbar": {
+    "asideAria": "侧边小组件",
+    "clockAria": "时钟与问候",
+    "weatherAria": "天气预报",
+    "themeAria": "主题模式",
+    "radarAria": "技能雷达图",
+    "nowAria": "Now",
+    "contactAria": "联系方式"
+  },
+  "footer": {
+    "built": "使用 Markdown 构建 · © {year} Jackson Hu",
+    "ghpages": "GitHub Pages",
+    "viewSource": "查看源代码"
+  },
+  "error": {
+    "loadTitle": "简历加载失败：",
+    "loadHint": "本地预览请运行：python -m http.server 8000，然后访问 http://localhost:8000。",
+    "fileProtocol": "通过 file:// 直接打开 index.html 时浏览器禁止 fetch 本地文件。\n请改用 python -m http.server 或部署到 GitHub Pages 后访问。",
+    "mdLoad": "无法加载 {path}（HTTP {status}）",
+    "weatherLoad": "天气加载失败",
+    "weatherRetry": "请稍后再试",
+    "weatherOffline": "离线"
+  },
+  "theme": {
+    "toolbarAuto": "Auto",
+    "toolbarLight": "Light",
+    "toolbarDark": "Dark",
+    "toolbarTitle": "当前：{mode}（实际渲染：{real}）· 点击切换",
+    "toolbarAria": "主题：{mode}，点击切换",
+    "cardAuto": "Auto · 跟随时间",
+    "cardLight": "Light · 已锁定",
+    "cardDark": "Dark · 已锁定",
+    "cardDetailAuto": "下次切换 {time} → {next}",
+    "cardDetailLocked": "点击卡片或右上按钮切换",
+    "cardCurrent": "当前：{theme}",
+    "themeDark": "深色",
+    "themeLight": "浅色"
+  },
+  "clock": {
+    "greetingNight": "夜深了 · Late night",
+    "greetingMorning": "早上好 · Good morning",
+    "greetingNoon": "中午好 · Good noon",
+    "greetingAfternoon": "下午好 · Good afternoon",
+    "greetingEvening": "晚上好 · Good evening",
+    "week0": "周日",
+    "week1": "周一",
+    "week2": "周二",
+    "week3": "周三",
+    "week4": "周四",
+    "week5": "周五",
+    "week6": "周六"
+  },
+  "weather": {
+    "statusLocating": "定位中",
+    "statusGeocode": "解析位置",
+    "statusFetching": "获取中",
+    "statusOk": "已更新",
+    "statusError": "暂不可用",
+    "statusOffline": "离线",
+    "loadingBody": "正在获取位置…",
+    "humidity": "湿度 {rh}%",
+    "geoUnknown": "无法取得地名",
+    "day0": "今天",
+    "day1": "明天",
+    "day2": "后天",
+    "unavailableTitle": "暂不可用",
+    "unavailableDesc": "天气暂不可用",
+    "forecastNA": "—",
+    "refreshTitle": "重新获取定位与天气",
+    "refreshAria": "重新获取定位与天气"
+  },
+  "wmo": {
+    "0": "晴",
+    "1": "基本晴朗",
+    "2": "局部多云",
+    "3": "阴",
+    "45": "雾",
+    "48": "冻雾",
+    "51": "小毛毛雨",
+    "53": "毛毛雨",
+    "55": "大毛毛雨",
+    "56": "冻毛毛雨",
+    "57": "强冻毛毛雨",
+    "61": "小雨",
+    "63": "中雨",
+    "65": "大雨",
+    "66": "冻雨",
+    "67": "强冻雨",
+    "71": "小雪",
+    "73": "中雪",
+    "75": "大雪",
+    "77": "雪粒",
+    "80": "阵雨",
+    "81": "中阵雨",
+    "82": "强阵雨",
+    "85": "小阵雪",
+    "86": "大阵雪",
+    "95": "雷雨",
+    "96": "雷雨伴小冰雹",
+    "99": "雷雨伴大冰雹",
+    "unknown": "未知"
+  },
+  "contact": {
+    "wechatCopy": "微信 · 点击复制",
+    "wechatCopied": "已复制",
+    "wechatFail": "复制失败"
+  },
+  "resume": {
+    "keywordLabel": "关键词：",
+    "chipPhoneAria": "电话，点击查看并复制",
+    "chipEmailAria": "邮箱，点击查看并复制",
+    "chipTitle": "点击查看并复制",
+    "chipUnlock": "点击解锁",
+    "chipShown": "已显示 · 点击复制",
+    "chipCopied": "已复制 ✓",
+    "chipCopyFail": "复制失败",
+    "chipCopyAgain": "点击复制"
+  },
+  "now": { "updatedLabel": "UPDATED ·" },
+  "radar": { "svgAria": "技能雷达图" },
+  "widgets": {
+    "eyebrowWeather": "WEATHER",
+    "eyebrowMode": "MODE",
+    "eyebrowRadar": "SKILLS · RADAR",
+    "eyebrowNow": "// NOW",
+    "eyebrowContact": "CONTACT"
+  },
+  "nowWidget": {
+    "items": [
+      { "label": "求职状态", "text": "开放新机会，可随时到岗" },
+      { "label": "新型AI概念项目", "text": "3D 数字影棚" },
+      { "label": "学习中", "text": "Agent skills、生成式通用 Eval 体系" },
+      { "label": "阅读中", "text": "《Generative Deep Learning》by O’Reilly" }
+    ]
+  },
+  "radarDims": {
+    "ai_product": "AI 产品",
+    "backend": "后端工程",
+    "frontend": "前端工程",
+    "collab": "跨团队协同",
+    "docs": "文档表达"
+  },
+  "contactLinks": [{ "label": "邮箱" }, { "label": "GitHub" }]
+}

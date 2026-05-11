@@ -1,0 +1,165 @@
+{
+  "meta": {
+    "title": "Jackson Hu · AIPM レジュメ",
+    "description": "Jackson Hu · AI プロダクトマネージャー / AI テクニカルプログラムマネージャー — 職務経歴書"
+  },
+  "loading": { "resume": "レジュメを読み込み中…", "widget": "読み込み中…" },
+  "actions": {
+    "widgets": "ウィジェット",
+    "widgetsTitle": "サイドバーを開く（天気・連絡先など）",
+    "widgetsAria": "サイドバーウィジェットを開く",
+    "themeTitle": "テーマを切替：自動／ライト／ダーク",
+    "themeAria": "テーマと外観",
+    "printTitle": "PDF に出力／印刷",
+    "printAria": "PDF に出力または印刷",
+    "print": "PDF をダウンロード",
+    "sourceTitle": "Markdown ソースを表示",
+    "sourceAria": "この言語の Markdown ソースを新しいタブで開く",
+    "source": "MD ソース"
+  },
+  "toolbarAria": "ページ操作",
+  "toc": { "title": "目次", "asideAria": "目次ナビゲーション" },
+  "rightbar": {
+    "asideAria": "サイドバーウィジェット",
+    "clockAria": "時計と挨拶",
+    "weatherAria": "天気",
+    "themeAria": "テーマモード",
+    "radarAria": "スキルレーダーチャート",
+    "nowAria": "Now",
+    "contactAria": "連絡先"
+  },
+  "footer": {
+    "built": "Markdown で構築 · © {year} Jackson Hu",
+    "ghpages": "GitHub Pages",
+    "viewSource": "ソースを見る"
+  },
+  "error": {
+    "loadTitle": "レジュメの読み込みに失敗しました：",
+    "loadHint": "ローカル確認は python -m http.server 8000 のあと http://localhost:8000 を開いてください。",
+    "fileProtocol": "file:// で開いているとブラウザがローカル fetch を禁止します。\npython -m http.server または GitHub Pages で閲覧してください。",
+    "mdLoad": "{path} を読み込めません（HTTP {status}）",
+    "weatherLoad": "天気の読み込みに失敗",
+    "weatherRetry": "しばらくしてから再度お試しください",
+    "weatherOffline": "オフライン"
+  },
+  "theme": {
+    "toolbarAuto": "自動",
+    "toolbarLight": "ライト",
+    "toolbarDark": "ダーク",
+    "toolbarTitle": "現在：{mode}（表示：{real}）· クリックで切替",
+    "toolbarAria": "テーマ：{mode}、クリックで切替",
+    "cardAuto": "自動 · 時間に連動",
+    "cardLight": "ライト · 固定",
+    "cardDark": "ダーク · 固定",
+    "cardDetailAuto": "次の切替 {time} → {next}",
+    "cardDetailLocked": "このカードまたは右上のボタンで切替",
+    "cardCurrent": "現在：{theme}",
+    "themeDark": "ダーク",
+    "themeLight": "ライト"
+  },
+  "clock": {
+    "greetingNight": "おやすみなさい · 深夜",
+    "greetingMorning": "おはようございます",
+    "greetingNoon": "こんにちは（昼）",
+    "greetingAfternoon": "こんにちは",
+    "greetingEvening": "こんばんは",
+    "week0": "日",
+    "week1": "月",
+    "week2": "火",
+    "week3": "水",
+    "week4": "木",
+    "week5": "金",
+    "week6": "土"
+  },
+  "weather": {
+    "statusLocating": "位置取得中",
+    "statusGeocode": "地名を解決中",
+    "statusFetching": "取得中",
+    "statusOk": "更新済み",
+    "statusError": "利用不可",
+    "statusOffline": "オフライン",
+    "loadingBody": "位置を取得しています…",
+    "humidity": "湿度 {rh}%",
+    "geoUnknown": "地名を取得できません",
+    "day0": "今日",
+    "day1": "明日",
+    "day2": "明後日",
+    "unavailableTitle": "利用不可",
+    "unavailableDesc": "天気は利用できません",
+    "forecastNA": "—",
+    "refreshTitle": "位置と天気を再取得",
+    "refreshAria": "位置と天気を再取得"
+  },
+  "wmo": {
+    "0": "快晴",
+    "1": "おおむね晴れ",
+    "2": "一部曇り",
+    "3": "曇り",
+    "45": "霧",
+    "48": "着氷性の霧",
+    "51": "弱い霧雨",
+    "53": "霧雨",
+    "55": "濃い霧雨",
+    "56": "凍結性の霧雨",
+    "57": "強い凍結性の霧雨",
+    "61": "弱い雨",
+    "63": "雨",
+    "65": "大雨",
+    "66": "凍雨",
+    "67": "強い凍雨",
+    "71": "弱い雪",
+    "73": "雪",
+    "75": "大雪",
+    "77": "雪の粒",
+    "80": "にわか雨",
+    "81": "強いにわか雨",
+    "82": "激しいにわか雨",
+    "85": "にわか雪",
+    "86": "激しいにわか雪",
+    "95": "雷雨",
+    "96": "雹を伴う雷雨（小）",
+    "99": "雹を伴う雷雨（大）",
+    "unknown": "不明"
+  },
+  "contact": {
+    "wechatCopy": "WeChat · タップでコピー",
+    "wechatCopied": "コピーしました",
+    "wechatFail": "コピーに失敗"
+  },
+  "resume": {
+    "keywordLabel": "キーワード：",
+    "chipPhoneAria": "電話 — タップで表示・コピー",
+    "chipEmailAria": "メール — タップで表示・コピー",
+    "chipTitle": "タップで表示・コピー",
+    "chipUnlock": "タップで表示",
+    "chipShown": "表示済み · タップでコピー",
+    "chipCopied": "コピーしました ✓",
+    "chipCopyFail": "コピーに失敗",
+    "chipCopyAgain": "タップでコピー"
+  },
+  "now": { "updatedLabel": "UPDATED ·" },
+  "radar": { "svgAria": "スキルレーダーチャート" },
+  "widgets": {
+    "eyebrowWeather": "天気",
+    "eyebrowMode": "テーマ",
+    "eyebrowRadar": "スキル · レーダー",
+    "eyebrowNow": "// いま",
+    "eyebrowContact": "連絡先"
+  },
+  "nowWidget": {
+    "items": [
+      { "label": "求職状況", "text": "新しい機会を検討中 · すぐに着任可" },
+      { "label": "コンセプト案件", "text": "3D バーチャルスタジオ" },
+      { "label": "学習中", "text": "Agent skills、生成系 Eval 体系" },
+      { "label": "読書中", "text": "『Generative Deep Learning』O’Reilly" }
+    ]
+  },
+  "radarDims": {
+    "ai_product": "AI プロダクト",
+    "backend": "バックエンド",
+    "frontend": "フロントエンド",
+    "collab": "横断連携",
+    "docs": "ドキュメント"
+  },
+  "contactLinks": [{ "label": "メール" }, { "label": "GitHub" }]
+}

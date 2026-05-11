@@ -7,12 +7,128 @@
 (function () {
   'use strict';
 
-  const MD_PATH = 'Resume-AIPM-Jackson.md';
   const CONFIG_PATH = 'assets/config/site.json';
   const $ = (sel, root) => (root || document).querySelector(sel);
   const $$ = (sel, root) => Array.from((root || document).querySelectorAll(sel));
 
+  const LOCALE_STORAGE_KEY = 'resume-locale';
+  const SUPPORTED_LOCALES = ['zh-CN', 'en', 'ja'];
+  const DEFAULT_LOCALE = 'zh-CN';
+  const SOURCE_REPO_BASE = 'https://github.com/Doveboy13/Doveboy13.github.io/blob/main/';
+  let i18nMessages = {};
+  let i18nLoadedLocale = '';
+
+  function t(key) {
+    if (!key) return '';
+    const parts = String(key).split('.');
+    let cur = i18nMessages;
+    for (let i = 0; i < parts.length; i++) {
+      const p = parts[i];
+      if (cur != null && typeof cur === 'object' && Object.prototype.hasOwnProperty.call(cur, p)) cur = cur[p];
+      else return key;
+    }
+    return typeof cur === 'string' ? cur : key;
+  }
+
+  /** Returns nested value from i18n JSON (object or array), or undefined if path missing. */
+  function i18nGet(key) {
+    const parts = String(key).split('.');
+    let cur = i18nMessages;
+    for (let i = 0; i < parts.length; i++) {
+      const p = parts[i];
+      if (cur == null || typeof cur !== 'object' || !Object.prototype.hasOwnProperty.call(cur, p)) return undefined;
+      cur = cur[p];
+    }
+    return cur;
+  }
+
+  async function loadI18nMessages(loc, force) {
+    const locale = SUPPORTED_LOCALES.includes(loc) ? loc : DEFAULT_LOCALE;
+    if (!force && i18nLoadedLocale === locale && i18nMessages && Object.keys(i18nMessages).length) return;
+    try {
+      const res = await fetch(`assets/i18n/${locale}.json`, { cache: 'no-cache' });
+      if (!res.ok) throw new Error('i18n http ' + res.status);
+      i18nMessages = await res.json();
+      i18nLoadedLocale = locale;
+    } catch (e) {
+      console.warn('[i18n] load failed:', locale, e);
+      i18nMessages = {};
+      i18nLoadedLocale = '';
+      if (locale !== DEFAULT_LOCALE) await loadI18nMessages(DEFAULT_LOCALE, false);
+    }
+  }
+
+  function getLocale() {
+    try {
+      const v = localStorage.getItem(LOCALE_STORAGE_KEY);
+      if (SUPPORTED_LOCALES.includes(v)) return v;
+    } catch (e) { /* noop */ }
+    const nav = (navigator.language || '').toLowerCase();
+    if (nav.startsWith('zh')) return 'zh-CN';
+    if (nav.startsWith('ja')) return 'ja';
+    return 'en';
+  }
+
+  function syncLocaleDom(loc) {
+    const v = SUPPORTED_LOCALES.includes(loc) ? loc : DEFAULT_LOCALE;
+    document.documentElement.lang = v === 'zh-CN' ? 'zh-CN' : v === 'ja' ? 'ja' : 'en';
+    document.documentElement.setAttribute('data-locale', v);
+    const cur = $('#btn-lang .lang-current');
+    const short = { 'zh-CN': '中文', en: 'English', ja: '日本語' };
+    if (cur) cur.textContent = short[v] || v;
+  }
+
+  function setLocaleStorage(loc) {
+    const v = SUPPORTED_LOCALES.includes(loc) ? loc : DEFAULT_LOCALE;
+    try {
+      localStorage.setItem(LOCALE_STORAGE_KEY, v);
+    } catch (e) { /* noop */ }
+    syncLocaleDom(v);
+  }
+
+  function applyI18n() {
+    document.querySelectorAll('[data-i18n]').forEach((el) => {
+      if (el.closest && el.closest('#btn-lang')) return;
+      const key = el.getAttribute('data-i18n');
+      if (!key) return;
+      el.textContent = t(key);
+    });
+    document.querySelectorAll('[data-i18n-aria]').forEach((el) => {
+      const key = el.getAttribute('data-i18n-aria');
+      if (key) el.setAttribute('aria-label', t(key));
+    });
+    document.querySelectorAll('[data-i18n-title]').forEach((el) => {
+      const key = el.getAttribute('data-i18n-title');
+      if (key) el.setAttribute('title', t(key));
+    });
+    const md = document.querySelector('meta[name="description"]');
+    const d = t('meta.description');
+    if (md && d && d !== 'meta.description') md.setAttribute('content', d);
+    const title = t('meta.title');
+    if (title && title !== 'meta.title') document.title = title;
+  }
+
+  function refreshFooterBuiltLine() {
+    const el = $('#footer-built-line');
+    if (!el) return;
+    const raw = t('footer.built');
+    el.textContent = raw && raw !== 'footer.built' ? raw.replace(/\{year\}/g, String(new Date().getFullYear())) : '';
+  }
+
+  function updateSourceLinkHref(site) {
+    const a = $('#btn-source');
+    if (!a) return;
+    const map = (site && site.resumeMarkdown) || DEFAULT_SITE_CONFIG.resumeMarkdown;
+    const path = map[getLocale()] || map[DEFAULT_LOCALE];
+    a.href = SOURCE_REPO_BASE + (path || 'Resume-AIPM-Jackson.md');
+  }
+
   const DEFAULT_SITE_CONFIG = {
+    resumeMarkdown: {
+      'zh-CN': 'Resume-AIPM-Jackson.md',
+      en: 'Resume-AIPM-Jackson-en.md',
+      ja: 'Resume-AIPM-Jackson-ja.md',
+    },
     weather: {
       defaultLat: 22.5431,
       defaultLon: 114.0579,
@@ -69,6 +185,9 @@
         if (typeof j.contact.wechatId === 'string') base.contact.wechatId = j.contact.wechatId;
         if (Array.isArray(j.contact.links) && j.contact.links.length) base.contact.links = j.contact.links;
       }
+      if (j.resumeMarkdown && typeof j.resumeMarkdown === 'object') {
+        Object.assign(base.resumeMarkdown, j.resumeMarkdown);
+      }
       return base;
     } catch (e) {
       console.warn('[SiteConfig] load failed, using defaults:', e);
@@ -78,19 +197,28 @@
 
   document.addEventListener('DOMContentLoaded', init);
 
+  let unregisterTocScroll = null;
+  let clockTickInterval = null;
+  let themeCardRenderRef = null;
+
   async function init() {
     setYear();
-    initTheme();
     bindProgressBar();
 
-    const siteP = loadSiteConfig();
-    const mdP = loadMarkdown();
-    const site = await siteP;
+    await loadI18nMessages(getLocale(), false);
+    syncLocaleDom(getLocale());
+    initTheme();
+
+    const site = await loadSiteConfig();
+    updateSourceLinkHref(site);
+    initLangSwitcher(site);
     initRightbar(site);
+    applyI18n();
+    refreshFooterBuiltLine();
 
     let md;
     try {
-      md = await mdP;
+      md = await loadMarkdown(site);
     } catch (err) {
       console.error('[Resume] load failed:', err);
       showLoadError(err);
@@ -100,20 +228,114 @@
     renderResume(md);
     enhanceDom();
     buildToc();
+    applyI18n();
     bindIntersectionAnims();
     bindPrintButton();
+    bindRightbarDrawer();
+    refreshFooterBuiltLine();
+  }
+
+  function initLangSwitcher(site) {
+    const btn = $('#btn-lang');
+    const menu = $('#lang-menu');
+    if (!btn || !menu) return;
+
+    const closeMenu = () => {
+      menu.hidden = true;
+      btn.setAttribute('aria-expanded', 'false');
+    };
+    const openMenu = () => {
+      menu.hidden = false;
+      btn.setAttribute('aria-expanded', 'true');
+    };
+
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (menu.hidden) openMenu();
+      else closeMenu();
+    });
+
+    menu.querySelectorAll('.lang-menu-item').forEach((item) => {
+      item.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const loc = item.getAttribute('data-locale');
+        if (!SUPPORTED_LOCALES.includes(loc)) return;
+        closeMenu();
+        await loadI18nMessages(loc, true);
+        setLocaleStorage(loc);
+        updateSourceLinkHref(site);
+        updateThemeButton(getStoredMode(), document.documentElement.dataset.theme || 'dark');
+        initRightbar(site);
+        applyI18n();
+        refreshFooterBuiltLine();
+        const resumeEl = $('#resume');
+        if (resumeEl) {
+          resumeEl.setAttribute('aria-busy', 'true');
+          resumeEl.innerHTML =
+            '<div class="loading"><div class="loader-ring"></div><div class="loader-text" data-i18n="loading.resume"></div></div>';
+          applyI18n();
+        }
+        try {
+          const md = await loadMarkdown(site);
+          renderResume(md);
+          enhanceDom();
+          if (unregisterTocScroll) {
+            unregisterTocScroll();
+            unregisterTocScroll = null;
+          }
+          const tl = $('#toc .toc-list');
+          if (tl) tl.innerHTML = '';
+          buildToc();
+          bindIntersectionAnims();
+          applyI18n();
+          refreshFooterBuiltLine();
+        } catch (err) {
+          console.error('[Resume] reload failed:', err);
+          showLoadError(err);
+        }
+      });
+    });
+
+    document.addEventListener('click', () => closeMenu());
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !menu.hidden) {
+        closeMenu();
+        btn.focus();
+      }
+    });
   }
 
   /* ---------- Load & render ---------- */
 
-  async function loadMarkdown() {
+  function resolveMdPath(site, locale) {
+    const map = (site && site.resumeMarkdown) || DEFAULT_SITE_CONFIG.resumeMarkdown;
+    const loc = SUPPORTED_LOCALES.includes(locale) ? locale : DEFAULT_LOCALE;
+    return map[loc] || map[DEFAULT_LOCALE] || 'Resume-AIPM-Jackson.md';
+  }
+
+  async function loadMarkdown(site) {
     if (location.protocol === 'file:') {
+      throw new Error(t('error.fileProtocol'));
+    }
+    const locale = getLocale();
+    const paths = (site && site.resumeMarkdown) || DEFAULT_SITE_CONFIG.resumeMarkdown;
+    let path = resolveMdPath(site, locale);
+    let res = await fetch(path, { cache: 'no-cache' });
+    if (!res.ok && locale !== DEFAULT_LOCALE) {
+      const fb = paths[DEFAULT_LOCALE];
+      if (fb && fb !== path) {
+        console.warn('[Resume] MD missing for locale, fallback:', locale, '->', fb);
+        path = fb;
+        res = await fetch(path, { cache: 'no-cache' });
+      }
+    }
+    if (!res.ok) {
       throw new Error(
-        '通过 file:// 直接打开 index.html 时浏览器禁止 fetch 本地文件。\n请改用 `python -m http.server` 或部署到 GitHub Pages 后访问。'
+        t('error.mdLoad')
+          .replace('{path}', path)
+          .replace('{status}', String(res.status))
       );
     }
-    const res = await fetch(MD_PATH, { cache: 'no-cache' });
-    if (!res.ok) throw new Error(`无法加载 ${MD_PATH}（HTTP ${res.status}）`);
     return res.text();
   }
 
@@ -150,11 +372,10 @@
     const container = $('#resume');
     container.innerHTML = `
       <div class="error-box">
-        <strong>简历加载失败：</strong>
+        <strong>${escapeHtml(t('error.loadTitle'))}</strong>
         <p style="margin:8px 0 0;white-space:pre-line">${escapeHtml(err && err.message ? err.message : String(err))}</p>
         <p style="margin:12px 0 0;font-size:12px;color:#94a3b8">
-          本地预览请运行：<code>python -m http.server 8000</code>，然后访问
-          <code>http://localhost:8000</code>。
+          ${escapeHtml(t('error.loadHint'))}
         </p>
       </div>`;
     container.removeAttribute('aria-busy');
@@ -300,7 +521,7 @@
     $$('#resume p').forEach((p) => {
       if (candidates.includes(p)) return;
       const strong = p.querySelector(':scope > strong, :scope > b');
-      if (strong && /^关键词[:：]/.test(strong.textContent.trim())) {
+      if (strong && /^(关键词|Keywords|キーワード)[:：]?\s*/i.test(strong.textContent.trim())) {
         candidates.push(p);
         return;
       }
@@ -308,7 +529,7 @@
       // (happens when intraword ** closing is followed by non-ASCII punctuation
       // and an alphanumeric, e.g. "**关键词：**AI产品0-1")
       const txt = (p.textContent || '').trim();
-      if (/^\*\*\s*关键词[:：]\s*\*\*/.test(txt)) {
+      if (/^\*\*\s*(关键词|Keywords|キーワード)[:：]?\s*\*\*/i.test(txt)) {
         p.dataset.keywordLiteral = '1';
         candidates.push(p);
       }
@@ -318,13 +539,13 @@
       // Path A: literal text — rebuild from textContent
       if (el.dataset && el.dataset.keywordLiteral === '1') {
         const txt = (el.textContent || '').trim();
-        const m = txt.match(/^\*\*\s*关键词[:：]\s*\*\*(.+)$/);
+        const m = txt.match(/^\*\*\s*(关键词|Keywords|キーワード)[:：]?\s*\*\*(.+)$/i);
         if (!m) return;
-        const items = splitKeywords(m[1]);
+        const items = splitKeywords(m[2]);
         if (items.length === 0) return;
         el.innerHTML = '';
         const label = document.createElement('b');
-        label.textContent = '关键词：';
+        label.textContent = t('resume.keywordLabel');
         el.appendChild(label);
         appendChipList(el, items);
         return;
@@ -340,7 +561,7 @@
           n = n.nextSibling;
         }
       } else {
-        raw = (el.textContent || '').replace(/^关键词[:：]\s*/, '');
+        raw = (el.textContent || '').replace(/^(关键词|Keywords|キーワード)[:：]?\s*/i, '');
       }
 
       const items = splitKeywords(raw);
@@ -353,11 +574,9 @@
           n.remove();
           n = next;
         }
-        if (!/[:：]\s*$/.test(labelEl.textContent)) {
-          labelEl.textContent = labelEl.textContent.trim() + '：';
-        }
+        labelEl.textContent = t('resume.keywordLabel');
       } else {
-        el.innerHTML = '<b>关键词：</b>';
+        el.innerHTML = `<b>${escapeHtml(t('resume.keywordLabel'))}</b>`;
       }
 
       appendChipList(el, items);
@@ -451,8 +670,8 @@
     chip.setAttribute('data-type', match.type);
     chip.setAttribute('role', 'button');
     chip.setAttribute('tabindex', '0');
-    chip.setAttribute('aria-label', (match.type === 'phone' ? '电话' : '邮箱') + '，点击查看并复制');
-    chip.title = '点击查看并复制';
+    chip.setAttribute('aria-label', match.type === 'phone' ? t('resume.chipPhoneAria') : t('resume.chipEmailAria'));
+    chip.title = t('resume.chipTitle');
 
     const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     icon.setAttribute('class', 'contact-icon');
@@ -473,7 +692,7 @@
 
     const tip = document.createElement('span');
     tip.className = 'copy-tip';
-    tip.textContent = '点击解锁';
+    tip.textContent = t('resume.chipUnlock');
 
     chip.appendChild(icon);
     chip.appendChild(maskSpan);
@@ -488,16 +707,16 @@
         chip.classList.add('revealed');
         maskSpan.style.display = 'none';
         realSpan.style.display = 'inline';
-        tip.textContent = '已显示 · 点击复制';
+        tip.textContent = t('resume.chipShown');
       } else {
         try {
           await navigator.clipboard.writeText(match.full);
           const original = tip.textContent;
-          tip.textContent = '已复制 ✓';
+          tip.textContent = t('resume.chipCopied');
           setTimeout(() => (tip.textContent = original), 1500);
         } catch (e) {
-          tip.textContent = '复制失败';
-          setTimeout(() => (tip.textContent = '点击复制'), 1500);
+          tip.textContent = t('resume.chipCopyFail');
+          setTimeout(() => (tip.textContent = t('resume.chipCopyAgain')), 1500);
         }
       }
     });
@@ -518,11 +737,17 @@
   function buildToc() {
     const toc = $('#toc .toc-list');
     if (!toc) return;
+    if (unregisterTocScroll) {
+      unregisterTocScroll();
+      unregisterTocScroll = null;
+    }
     const sections = $$('#resume section.section');
     if (sections.length === 0) {
       $('#toc').style.display = 'none';
       return;
     }
+    $('#toc').style.display = '';
+    toc.innerHTML = '';
 
     const links = [];
 
@@ -583,6 +808,10 @@
     window.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('resize', onScroll);
     updateActive();
+    unregisterTocScroll = () => {
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
+    };
   }
 
   /* =========================================================================
@@ -639,6 +868,33 @@
   /* =========================================================================
      Print button
      ========================================================================= */
+
+  function bindRightbarDrawer() {
+    const btn = $('#btn-widgets');
+    const backdrop = $('#rightbar-backdrop');
+    if (!btn || !backdrop) return;
+
+    const mq = window.matchMedia('(max-width: 1280px)');
+    const setOpen = (open) => {
+      document.body.classList.toggle('is-rightbar-open', open);
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      backdrop.setAttribute('aria-hidden', open ? 'false' : 'true');
+    };
+    const close = () => setOpen(false);
+
+    btn.addEventListener('click', () => {
+      setOpen(!document.body.classList.contains('is-rightbar-open'));
+    });
+    backdrop.addEventListener('click', close);
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') close();
+    });
+    const onMq = () => {
+      if (!mq.matches) close();
+    };
+    if (mq.addEventListener) mq.addEventListener('change', onMq);
+    else mq.addListener(onMq);
+  }
 
   function bindPrintButton() {
     const btn = $('#btn-print');
@@ -758,14 +1014,17 @@
     const icon = btn.querySelector('.theme-icon');
     const label = btn.querySelector('.theme-label');
     const map = {
-      auto: { icon: '⚙️', label: 'Auto' },
-      light: { icon: '☀️', label: 'Light' },
-      dark: { icon: '🌙', label: 'Dark' },
+      auto: { icon: '⚙️', labelKey: 'theme.toolbarAuto' },
+      light: { icon: '☀️', labelKey: 'theme.toolbarLight' },
+      dark: { icon: '🌙', labelKey: 'theme.toolbarDark' },
     };
-    if (icon) icon.textContent = map[mode].icon;
-    if (label) label.textContent = map[mode].label;
-    btn.title = `当前：${map[mode].label}（实际渲染：${real}）· 点击切换`;
-    btn.setAttribute('aria-label', `主题：${map[mode].label}，点击切换`);
+    const m = map[mode] || map.auto;
+    const lab = t(m.labelKey);
+    if (icon) icon.textContent = m.icon;
+    if (label) label.textContent = lab;
+    const realLab = real === 'dark' ? t('theme.toolbarDark') : t('theme.toolbarLight');
+    btn.title = t('theme.toolbarTitle').replace('{mode}', lab).replace('{real}', realLab);
+    btn.setAttribute('aria-label', t('theme.toolbarAria').replace('{mode}', lab));
   }
   function cycleTheme() {
     const current = getStoredMode();
@@ -805,6 +1064,10 @@
   function initClockWidget() {
     const root = $('#w-clock');
     if (!root) return;
+    if (clockTickInterval) {
+      clearInterval(clockTickInterval);
+      clockTickInterval = null;
+    }
     root.innerHTML = `
       <div class="clock-greeting"></div>
       <div class="clock-time"><span class="clock-hm"></span><span class="clock-sec"></span></div>
@@ -814,26 +1077,40 @@
     const sec = root.querySelector('.clock-sec');
     const dateEl = root.querySelector('.clock-date');
 
-    const weekDays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+    const weekDay = (i) => t(`clock.week${i}`);
 
     const greetingFor = (h) => {
-      if (h >= 5 && h < 11) return '早上好 · Good morning';
-      if (h >= 11 && h < 13) return '中午好 · Good noon';
-      if (h >= 13 && h < 18) return '下午好 · Good afternoon';
-      if (h >= 18 && h < 23) return '晚上好 · Good evening';
-      return '夜深了 · Late night';
+      if (h >= 5 && h < 11) return t('clock.greetingMorning');
+      if (h >= 11 && h < 13) return t('clock.greetingNoon');
+      if (h >= 13 && h < 18) return t('clock.greetingAfternoon');
+      if (h >= 18 && h < 23) return t('clock.greetingEvening');
+      return t('clock.greetingNight');
     };
     const pad = (n) => String(n).padStart(2, '0');
+
+    const formatClockDate = (d, dayLabel) => {
+      const loc = getLocale();
+      if (loc === 'zh-CN') {
+        return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日 · ${dayLabel}`;
+      }
+      const intl = loc === 'ja' ? 'ja-JP' : 'en-US';
+      try {
+        const datePart = d.toLocaleDateString(intl, { year: 'numeric', month: 'long', day: 'numeric' });
+        return `${datePart} · ${dayLabel}`;
+      } catch (e) {
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} · ${dayLabel}`;
+      }
+    };
 
     const tick = () => {
       const d = new Date();
       hm.textContent = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
       sec.textContent = ` :${pad(d.getSeconds())}`;
       greet.textContent = greetingFor(d.getHours());
-      dateEl.textContent = `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日 · ${weekDays[d.getDay()]}`;
+      dateEl.textContent = formatClockDate(d, weekDay(d.getDay()));
     };
     tick();
-    setInterval(tick, 1000);
+    clockTickInterval = setInterval(tick, 1000);
   }
 
   /* ---------- Weather ---------- */
@@ -843,6 +1120,7 @@
     if (!root) return;
     const status = root.querySelector('.widget-status');
     const body = root.querySelector('.widget-body');
+    const refreshBtn = root.querySelector('#btn-weather-refresh');
 
     const w = weatherCfg || DEFAULT_SITE_CONFIG.weather;
     const defW = DEFAULT_SITE_CONFIG.weather;
@@ -857,17 +1135,19 @@
       status.textContent = text;
     };
 
-    const getCoords = () =>
+    const getCoords = (forceRefresh) =>
       new Promise((resolve) => {
         const fallback = { lat: defaultLat, lon: defaultLon, usedDefault: true };
         if (!('geolocation' in navigator)) return resolve(fallback);
         let done = false;
+        const waitMs = forceRefresh ? 11000 : 5000;
+        const geoTimeout = forceRefresh ? 10000 : 4500;
         const timer = setTimeout(() => {
           if (!done) {
             done = true;
             resolve(fallback);
           }
-        }, 5000);
+        }, waitMs);
         navigator.geolocation.getCurrentPosition(
           (pos) => {
             if (done) return;
@@ -885,7 +1165,11 @@
             clearTimeout(timer);
             resolve(fallback);
           },
-          { enableHighAccuracy: false, timeout: 4500, maximumAge: 10 * 60 * 1000 }
+          {
+            enableHighAccuracy: !!forceRefresh,
+            timeout: geoTimeout,
+            maximumAge: forceRefresh ? 0 : 10 * 60 * 1000,
+          }
         );
       });
 
@@ -967,12 +1251,27 @@
       return parts.filter(Boolean).join(' · ');
     }
 
+    function weatherLocalityLang() {
+      const loc = getLocale();
+      if (loc === 'ja') return 'ja';
+      if (loc === 'en') return 'en';
+      return 'zh';
+    }
+
+    function nominatimAcceptLanguage() {
+      const loc = getLocale();
+      if (loc === 'ja') return 'ja, en;q=0.8';
+      if (loc === 'en') return 'en, zh;q=0.5';
+      return 'zh-CN, zh;q=0.9, en;q=0.8';
+    }
+
     async function reverseGeocodeBigDataLabel(lat, lon) {
       if (location.protocol === 'file:') return '';
       try {
+        const lang = weatherLocalityLang();
         const url =
           'https://api.bigdatacloud.net/data/reverse-geocode-client' +
-          `?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&localityLanguage=zh`;
+          `?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&localityLanguage=${encodeURIComponent(lang)}`;
         const res = await fetch(url, { cache: 'no-cache' });
         if (!res.ok) return '';
         const j = await res.json();
@@ -992,7 +1291,7 @@
           `&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}&accept-language=zh${emailQ}`;
         const res = await fetch(url, {
           cache: 'no-cache',
-          headers: { 'Accept-Language': 'zh-CN, zh;q=0.9, en;q=0.8' },
+          headers: { 'Accept-Language': nominatimAcceptLanguage() },
         });
         if (!res.ok) return '';
         const j = await res.json();
@@ -1029,12 +1328,12 @@
       const daily = data.daily || {};
       const code = cur.weather_code;
       const meta = wmoMeta(code);
-      const t = Math.round(cur.temperature_2m);
+      const tempC = Math.round(cur.temperature_2m);
       const rh = cur.relative_humidity_2m;
 
       const days = (daily.time || []).slice(0, 3).map((d, i) => {
         const dt = new Date(d);
-        const labels = ['今天', '明天', '后天'];
+        const labels = [t('weather.day0'), t('weather.day1'), t('weather.day2')];
         const m = wmoMeta(daily.weather_code[i]);
         return `
           <div class="forecast-day">
@@ -1050,38 +1349,57 @@
         <div class="weather-current">
           <div class="weather-icon" title="${meta.label}">${meta.icon}</div>
           <div class="weather-current-text">
-            <div class="weather-temp">${t}<sup>°C</sup></div>
-            <div class="weather-desc">${meta.label}${rh != null ? ` · 湿度 ${rh}%` : ''}</div>
+            <div class="weather-temp">${tempC}<sup>°C</sup></div>
+            <div class="weather-desc">${meta.label}${
+          rh != null ? ` · ${t('weather.humidity').replace('{rh}', String(rh))}` : ''
+        }</div>
             <span class="weather-loc">📍 ${escapeHtml(locLabel)}</span>
           </div>
         </div>
         <div class="weather-forecast">${days}</div>`;
-      setStatus('ok', '已更新');
+      setStatus('ok', t('weather.statusOk'));
     };
 
     const renderUnavailable = (locLabel) => {
       body.innerHTML = `
         <div class="weather-current weather-current--unavailable">
-          <div class="weather-icon" title="暂不可用">🌡️</div>
+          <div class="weather-icon" title="${escapeHtml(t('weather.unavailableTitle'))}">🌡️</div>
           <div class="weather-current-text">
             <div class="weather-temp">—<sup>°C</sup></div>
-            <div class="weather-desc">天气暂不可用</div>
+            <div class="weather-desc">${escapeHtml(t('weather.unavailableDesc'))}</div>
             <span class="weather-loc">📍 ${escapeHtml(locLabel)}</span>
           </div>
         </div>
         <div class="weather-forecast weather-forecast--placeholder" aria-hidden="true">
-          <div class="forecast-day"><span class="fd-label">今天</span><span class="fd-icon">—</span><span class="fd-temp">—</span></div>
-          <div class="forecast-day"><span class="fd-label">明天</span><span class="fd-icon">—</span><span class="fd-temp">—</span></div>
-          <div class="forecast-day"><span class="fd-label">后天</span><span class="fd-icon">—</span><span class="fd-temp">—</span></div>
+          <div class="forecast-day"><span class="fd-label">${escapeHtml(t('weather.day0'))}</span><span class="fd-icon">${escapeHtml(
+        t('weather.forecastNA')
+      )}</span><span class="fd-temp">${escapeHtml(t('weather.forecastNA'))}</span></div>
+          <div class="forecast-day"><span class="fd-label">${escapeHtml(t('weather.day1'))}</span><span class="fd-icon">${escapeHtml(
+        t('weather.forecastNA')
+      )}</span><span class="fd-temp">${escapeHtml(t('weather.forecastNA'))}</span></div>
+          <div class="forecast-day"><span class="fd-label">${escapeHtml(t('weather.day2'))}</span><span class="fd-icon">${escapeHtml(
+        t('weather.forecastNA')
+      )}</span><span class="fd-temp">${escapeHtml(t('weather.forecastNA'))}</span></div>
         </div>`;
-      setStatus('error', '暂不可用');
+      setStatus('error', t('weather.statusError'));
     };
 
-    (async () => {
+    let weatherLoadInFlight = false;
+
+    async function loadWeather(forceRefresh) {
+      if (weatherLoadInFlight) return;
+      weatherLoadInFlight = true;
+      if (refreshBtn) {
+        refreshBtn.disabled = true;
+        refreshBtn.classList.add('is-busy');
+      }
       try {
-        setStatus('loading', '定位中');
-        const c = await getCoords();
-        setStatus('loading', '解析位置');
+        if (forceRefresh) {
+          body.innerHTML = `<div class="widget-loading">${escapeHtml(t('weather.loadingBody'))}</div>`;
+        }
+        setStatus('loading', t('weather.statusLocating'));
+        const c = await getCoords(!!forceRefresh);
+        setStatus('loading', t('weather.statusGeocode'));
         let geoLabel = await reverseGeocodeLabel(c.lat, c.lon);
         if (!geoLabel) geoLabel = await reverseGeocodeBigDataLabel(c.lat, c.lon);
         if (!geoLabel) {
@@ -1090,11 +1408,11 @@
           } else if (haversineKm(c.lat, c.lon, defaultLat, defaultLon) <= 80) {
             geoLabel = fallbackCityLabel;
           } else {
-            geoLabel = '无法取得地名';
+            geoLabel = t('weather.geoUnknown');
           }
         }
 
-        setStatus('loading', '获取中');
+        setStatus('loading', t('weather.statusFetching'));
         try {
           const data = await fetchWeatherWithRetry(c.lat, c.lon, 2);
           render(data, geoLabel);
@@ -1104,32 +1422,62 @@
         }
       } catch (err) {
         console.warn('[Weather] failed:', err);
-        body.innerHTML = `<div class="widget-loading">天气加载失败<br>请稍后再试</div>`;
-        setStatus('error', '离线');
+        body.innerHTML = `<div class="widget-loading">${escapeHtml(t('error.weatherLoad'))}<br>${escapeHtml(
+          t('error.weatherRetry')
+        )}</div>`;
+        setStatus('error', t('error.weatherOffline'));
+      } finally {
+        weatherLoadInFlight = false;
+        if (refreshBtn) {
+          refreshBtn.disabled = false;
+          refreshBtn.classList.remove('is-busy');
+        }
       }
-    })();
+    }
+
+    loadWeather(false);
+    if (refreshBtn) {
+      refreshBtn.onclick = () => {
+        loadWeather(true);
+      };
+    }
   }
 
   function wmoMeta(code) {
-    // WMO Weather interpretation codes
-    // https://open-meteo.com/en/docs
+    // WMO Weather interpretation codes — https://open-meteo.com/en/docs
     const map = {
-      0: { icon: '☀️', label: '晴' },
-      1: { icon: '🌤️', label: '基本晴朗' },
-      2: { icon: '⛅', label: '局部多云' },
-      3: { icon: '☁️', label: '阴' },
-      45: { icon: '🌫️', label: '雾' }, 48: { icon: '🌫️', label: '冻雾' },
-      51: { icon: '🌦️', label: '小毛毛雨' }, 53: { icon: '🌦️', label: '毛毛雨' }, 55: { icon: '🌧️', label: '大毛毛雨' },
-      56: { icon: '🌧️', label: '冻毛毛雨' }, 57: { icon: '🌧️', label: '强冻毛毛雨' },
-      61: { icon: '🌧️', label: '小雨' }, 63: { icon: '🌧️', label: '中雨' }, 65: { icon: '🌧️', label: '大雨' },
-      66: { icon: '🌧️', label: '冻雨' }, 67: { icon: '🌧️', label: '强冻雨' },
-      71: { icon: '🌨️', label: '小雪' }, 73: { icon: '🌨️', label: '中雪' }, 75: { icon: '❄️', label: '大雪' },
-      77: { icon: '❄️', label: '雪粒' },
-      80: { icon: '🌦️', label: '阵雨' }, 81: { icon: '🌧️', label: '中阵雨' }, 82: { icon: '⛈️', label: '强阵雨' },
-      85: { icon: '🌨️', label: '小阵雪' }, 86: { icon: '❄️', label: '大阵雪' },
-      95: { icon: '⛈️', label: '雷雨' }, 96: { icon: '⛈️', label: '雷雨伴小冰雹' }, 99: { icon: '⛈️', label: '雷雨伴大冰雹' },
+      0: { icon: '☀️', labelKey: 'wmo.0' },
+      1: { icon: '🌤️', labelKey: 'wmo.1' },
+      2: { icon: '⛅', labelKey: 'wmo.2' },
+      3: { icon: '☁️', labelKey: 'wmo.3' },
+      45: { icon: '🌫️', labelKey: 'wmo.45' },
+      48: { icon: '🌫️', labelKey: 'wmo.48' },
+      51: { icon: '🌦️', labelKey: 'wmo.51' },
+      53: { icon: '🌦️', labelKey: 'wmo.53' },
+      55: { icon: '🌧️', labelKey: 'wmo.55' },
+      56: { icon: '🌧️', labelKey: 'wmo.56' },
+      57: { icon: '🌧️', labelKey: 'wmo.57' },
+      61: { icon: '🌧️', labelKey: 'wmo.61' },
+      63: { icon: '🌧️', labelKey: 'wmo.63' },
+      65: { icon: '🌧️', labelKey: 'wmo.65' },
+      66: { icon: '🌧️', labelKey: 'wmo.66' },
+      67: { icon: '🌧️', labelKey: 'wmo.67' },
+      71: { icon: '🌨️', labelKey: 'wmo.71' },
+      73: { icon: '🌨️', labelKey: 'wmo.73' },
+      75: { icon: '❄️', labelKey: 'wmo.75' },
+      77: { icon: '❄️', labelKey: 'wmo.77' },
+      80: { icon: '🌦️', labelKey: 'wmo.80' },
+      81: { icon: '🌧️', labelKey: 'wmo.81' },
+      82: { icon: '⛈️', labelKey: 'wmo.82' },
+      85: { icon: '🌨️', labelKey: 'wmo.85' },
+      86: { icon: '❄️', labelKey: 'wmo.86' },
+      95: { icon: '⛈️', labelKey: 'wmo.95' },
+      96: { icon: '⛈️', labelKey: 'wmo.96' },
+      99: { icon: '⛈️', labelKey: 'wmo.99' },
     };
-    return map[code] || { icon: '🌡️', label: '未知' };
+    const fallback = { icon: '🌡️', labelKey: 'wmo.unknown' };
+    const m = map[code] || fallback;
+    return { icon: m.icon, label: t(m.labelKey) };
   }
 
   /* ---------- Theme card ---------- */
@@ -1141,31 +1489,42 @@
 
     const render = (mode, real) => {
       const map = {
-        auto: { icon: '⚙️', label: 'Auto · 跟随时间' },
-        light: { icon: '☀️', label: 'Light · 已锁定' },
-        dark: { icon: '🌙', label: 'Dark · 已锁定' },
+        auto: { icon: '⚙️', label: t('theme.cardAuto') },
+        light: { icon: '☀️', label: t('theme.cardLight') },
+        dark: { icon: '🌙', label: t('theme.cardDark') },
       };
       let detail;
       if (mode === 'auto') {
         const hint = nextAutoSwitchHint();
-        detail = `下次切换 ${hint.time} → ${hint.goingTo === 'dark' ? '深色' : '浅色'}`;
+        const nextTheme = hint.goingTo === 'dark' ? t('theme.themeDark') : t('theme.themeLight');
+        detail = t('theme.cardDetailAuto').replace('{time}', hint.time).replace('{next}', nextTheme);
       } else {
-        detail = `点击卡片或右上按钮切换`;
+        detail = t('theme.cardDetailLocked');
       }
+      const curTheme = real === 'dark' ? t('theme.themeDark') : t('theme.themeLight');
       body.innerHTML = `
         <div class="tc-row">
           <div class="tc-icon">${map[mode].icon}</div>
           <div class="tc-info">
             <div class="tc-mode">${map[mode].label}</div>
-            <div class="tc-detail">${detail} · 当前：${real === 'dark' ? '深色' : '浅色'}</div>
+            <div class="tc-detail">${detail} · ${t('theme.cardCurrent').replace('{theme}', curTheme)}</div>
           </div>
         </div>`;
     };
 
-    root.addEventListener('click', cycleTheme);
+    if (themeCardRenderRef) {
+      const ix = themeListeners.indexOf(themeCardRenderRef);
+      if (ix >= 0) themeListeners.splice(ix, 1);
+    }
+    themeCardRenderRef = render;
+    onThemeChange(render);
+
+    if (root.dataset.themeCardClickBound !== '1') {
+      root.addEventListener('click', cycleTheme);
+      root.dataset.themeCardClickBound = '1';
+    }
     root.style.cursor = 'pointer';
 
-    onThemeChange(render);
     render(getStoredMode(), document.documentElement.dataset.theme || 'dark');
   }
 
@@ -1177,10 +1536,17 @@
     const body = root.querySelector('.widget-body');
 
     let dims = (radarCfg && radarCfg.dimensions) || DEFAULT_SITE_CONFIG.skillsRadar.dimensions;
-    dims = dims.map((d) => ({
-      label: d.label || '',
-      value: Math.max(0, Math.min(100, Number(d.value) || 0)),
-    }));
+    dims = dims.map((d) => {
+      const id = d.id || '';
+      const k = id ? `radarDims.${id}` : '';
+      const tr = k ? t(k) : '';
+      const label = k && tr !== k ? tr : d.label || '';
+      return {
+        id,
+        label,
+        value: Math.max(0, Math.min(100, Number(d.value) || 0)),
+      };
+    });
 
     const innerW = 232;
     const innerH = 256;
@@ -1246,7 +1612,7 @@
       .join('');
 
     body.innerHTML = `
-      <svg viewBox="${vbMinX} ${vbMinY} ${vbW} ${vbH}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="技能雷达图">
+      <svg viewBox="${vbMinX} ${vbMinY} ${vbW} ${vbH}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${escapeHtml(t('radar.svgAria'))}">
         <defs>
           <linearGradient id="radarGrad" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stop-color="#7c3aed" stop-opacity="0.55" />
@@ -1269,7 +1635,15 @@
     const body = root.querySelector('.widget-body');
 
     const cfg = nowCfg || DEFAULT_SITE_CONFIG.now;
-    const items = Array.isArray(cfg.items) && cfg.items.length ? cfg.items : DEFAULT_SITE_CONFIG.now.items;
+    const baseItems = Array.isArray(cfg.items) && cfg.items.length ? cfg.items : DEFAULT_SITE_CONFIG.now.items;
+    const i18nItems = i18nGet('nowWidget.items');
+    const items =
+      Array.isArray(i18nItems) && i18nItems.length === baseItems.length
+        ? baseItems.map((it, i) => ({
+            label: (i18nItems[i] && i18nItems[i].label) || it.label || '',
+            text: (i18nItems[i] && i18nItems[i].text) || it.text || '',
+          }))
+        : baseItems;
     const updated = cfg.updated || DEFAULT_SITE_CONFIG.now.updated;
 
     body.innerHTML = `
@@ -1283,7 +1657,7 @@
           )
           .join('')}
       </ul>
-      <div class="now-updated">UPDATED · ${escapeHtml(updated)}</div>`;
+      <div class="now-updated">${escapeHtml(t('now.updatedLabel'))} ${escapeHtml(updated)}</div>`;
   }
 
   /* ---------- Contact links + optional WeChat copy ---------- */
@@ -1296,39 +1670,41 @@
     const links = Array.isArray(cfg.links) ? cfg.links : [];
     const wechatId = typeof cfg.wechatId === 'string' ? cfg.wechatId.trim() : '';
 
+    const linkLabels = i18nGet('contactLinks');
     let html = '<div class="contact-actions">';
-    links.forEach((link) => {
+    links.forEach((link, idx) => {
       const href = link.href || '#';
-      const label = escapeHtml(link.label || href);
+      const fromI18n = Array.isArray(linkLabels) && linkLabels[idx] && linkLabels[idx].label;
+      const label = escapeHtml((fromI18n || link.label || href).trim());
       const safeHref = escapeHtml(href);
       const isMail = link.type === 'mailto' || /^mailto:/i.test(href);
       const external = isMail ? '' : ' target="_blank" rel="noopener noreferrer"';
       html += `<a class="contact-link-btn" href="${safeHref}"${external}>${label}</a>`;
     });
     if (wechatId) {
-      html += `<button type="button" class="contact-link-btn contact-wechat-btn">微信 · 点击复制</button>`;
+      html += `<button type="button" class="contact-link-btn contact-wechat-btn">${escapeHtml(t('contact.wechatCopy'))}</button>`;
     }
     html += '</div>';
     body.innerHTML = html;
 
     const wxBtn = body.querySelector('.contact-wechat-btn');
     if (wxBtn && wechatId) {
-      const defaultLabel = '微信 · 点击复制';
-      wxBtn.addEventListener('click', async () => {
+      const defaultLabel = t('contact.wechatCopy');
+      wxBtn.onclick = async () => {
         try {
           await navigator.clipboard.writeText(wechatId);
-          wxBtn.textContent = '已复制';
+          wxBtn.textContent = t('contact.wechatCopied');
           setTimeout(() => {
             wxBtn.textContent = defaultLabel;
           }, 2000);
         } catch (e) {
           console.warn('[Contact] clipboard failed:', e);
-          wxBtn.textContent = '复制失败';
+          wxBtn.textContent = t('contact.wechatFail');
           setTimeout(() => {
             wxBtn.textContent = defaultLabel;
           }, 2000);
         }
-      });
+      };
     }
   }
 
