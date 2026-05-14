@@ -1,4 +1,7 @@
 {
+  "effects": {
+    "hero": "full"
+  },
   "resumeMarkdown": {
     "zh-CN": "Resume-AIPM-Jackson.md",
     "en": "Resume-AIPM-Jackson-en.md",

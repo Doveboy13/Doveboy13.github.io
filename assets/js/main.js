@@ -154,6 +154,9 @@
         { label: '兴趣', text: 'AI 创作工具、Workflow 编排' },
       ],
     },
+    effects: {
+      hero: 'full',
+    },
     contact: {
       wechatId: '',
       links: [
@@ -188,6 +191,11 @@
       if (j.resumeMarkdown && typeof j.resumeMarkdown === 'object') {
         Object.assign(base.resumeMarkdown, j.resumeMarkdown);
       }
+      if (j.effects && typeof j.effects === 'object') {
+        if (j.effects.hero !== undefined && j.effects.hero !== null) {
+          base.effects.hero = String(j.effects.hero);
+        }
+      }
       return base;
     } catch (e) {
       console.warn('[SiteConfig] load failed, using defaults:', e);
@@ -210,6 +218,12 @@
     initTheme();
 
     const site = await loadSiteConfig();
+    if (window.ResumeHeroEffect && typeof window.ResumeHeroEffect.init === 'function') {
+      console.info('[Resume]', 'ResumeHeroEffect.init(site) — check [HeroEffect] logs next');
+      window.ResumeHeroEffect.init(site);
+    } else {
+      console.warn('[Resume]', 'ResumeHeroEffect missing — hero-effect.js not loaded?');
+    }
     updateSourceLinkHref(site);
     initLangSwitcher(site);
     initRightbar(site);
@@ -847,7 +861,8 @@
      ========================================================================= */
 
   function bindIntersectionAnims() {
-    if (!('IntersectionObserver' in window)) {
+    const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!('IntersectionObserver' in window) || reduceMotion) {
       $$('.fade-in').forEach((el) => el.classList.add('is-visible'));
       return;
     }
@@ -1012,6 +1027,14 @@
     document.documentElement.dataset.themeMode = mode;
     updateThemeButton(mode, real);
     themeListeners.forEach((fn) => { try { fn(mode, real); } catch (e) { /* noop */ } });
+    try {
+      document.dispatchEvent(
+        new CustomEvent('resume:theme', {
+          bubbles: false,
+          detail: { storedMode: mode, resolved: real },
+        })
+      );
+    } catch (e) { /* noop */ }
   }
   function updateThemeButton(mode, real) {
     const btn = $('#btn-theme');
@@ -1535,6 +1558,69 @@
 
   /* ---------- Skills radar ---------- */
 
+  function animateRadarPolygonIfAllowed(container, poly, finalPtsStr) {
+    const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduceMotion || !poly || !finalPtsStr) return;
+
+    const parsePts = (s) =>
+      String(s)
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean)
+        .map((pair) => {
+          const parts = pair.split(',');
+          return [Number(parts[0]), Number(parts[1])];
+        });
+
+    let targets;
+    let origin;
+    try {
+      targets = parsePts(finalPtsStr);
+      origin = parsePts(poly.getAttribute('points') || '');
+    } catch (e) {
+      return;
+    }
+    if (!targets.length || origin.length !== targets.length) return;
+
+    let started = false;
+    const run = () => {
+      if (started) return;
+      started = true;
+      const t0 = performance.now();
+      const dur = 820;
+      const ease = (t) => 1 - Math.pow(1 - t, 3);
+      const step = (now) => {
+        const u = Math.min(1, (now - t0) / dur);
+        const e = ease(u);
+        const pts = origin.map((f, i) => {
+          const tx = targets[i][0];
+          const ty = targets[i][1];
+          return [f[0] + (tx - f[0]) * e, f[1] + (ty - f[1]) * e];
+        });
+        poly.setAttribute(
+          'points',
+          pts.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' ')
+        );
+        if (u < 1) requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    };
+
+    if (!('IntersectionObserver' in window)) {
+      run();
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((x) => x.isIntersecting)) return;
+        io.disconnect();
+        run();
+      },
+      { rootMargin: '0px 0px -6% 0px', threshold: 0.08 }
+    );
+    io.observe(container);
+  }
+
   function initRadarWidget(radarCfg) {
     const root = $('#w-radar');
     if (!root) return;
@@ -1588,6 +1674,7 @@
       })
       .join('');
 
+    const shapePtsStart = dims.map((_, i) => point(0, i).join(',')).join(' ');
     const shapePts = dims.map((d, i) => point(radius * (d.value / 100), i).join(',')).join(' ');
 
     const verts = dims
@@ -1626,10 +1713,13 @@
         </defs>
         ${rings}
         ${axes}
-        <polygon class="radar-shape" points="${shapePts}" />
+        <polygon class="radar-shape" points="${shapePtsStart}" />
         ${verts}
         ${labels}
       </svg>`;
+
+    const radarPoly = body.querySelector('.radar-shape');
+    if (radarPoly) animateRadarPolygonIfAllowed(body, radarPoly, shapePts);
   }
 
   /* ---------- Now ---------- */
