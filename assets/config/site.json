@@ -1,6 +1,8 @@
 {
   "effects": {
-    "hero": "full"
+    "hero": "full",
+    "headerTypewriter": true,
+    "scrollGsap": false
   },
   "resumeMarkdown": {
     "zh-CN": "Resume-AIPM-Jackson.md",

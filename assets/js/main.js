@@ -209,30 +209,68 @@
   let clockTickInterval = null;
   let themeCardRenderRef = null;
 
+  function isHeroEffectOff(site) {
+    const h = site && site.effects && site.effects.hero;
+    const s = String(h == null ? 'full' : h).trim().toLowerCase();
+    return s === 'off' || s === 'none' || s === 'false' || s === '0';
+  }
+
+  function scheduleResumeHeroEffect(site) {
+    if (!window.ResumeHeroEffect || typeof window.ResumeHeroEffect.init !== 'function') {
+      console.warn('[Resume]', 'ResumeHeroEffect missing — hero-effect.js not loaded?');
+      return;
+    }
+    const run = () => {
+      console.info('[Resume]', 'ResumeHeroEffect.init(site) — check [HeroEffect] logs next');
+      window.ResumeHeroEffect.init(site);
+    };
+    if (isHeroEffectOff(site)) {
+      run();
+    } else {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(run);
+      });
+    }
+  }
+
+  function scheduleDeferredWeatherKickoff(kickoff) {
+    if (typeof kickoff !== 'function') return;
+    const start = () => {
+      try {
+        kickoff();
+      } catch (e) { /* noop */ }
+    };
+    if (typeof requestIdleCallback === 'function') {
+      requestIdleCallback(start, { timeout: 2000 });
+    } else {
+      setTimeout(start, 0);
+    }
+  }
+
   async function init() {
     setYear();
     bindProgressBar();
 
-    await loadI18nMessages(getLocale(), false);
+    const [, site] = await Promise.all([
+      loadI18nMessages(getLocale(), false),
+      loadSiteConfig(),
+    ]);
+
     syncLocaleDom(getLocale());
     initTheme();
 
-    const site = await loadSiteConfig();
-    if (window.ResumeHeroEffect && typeof window.ResumeHeroEffect.init === 'function') {
-      console.info('[Resume]', 'ResumeHeroEffect.init(site) — check [HeroEffect] logs next');
-      window.ResumeHeroEffect.init(site);
-    } else {
-      console.warn('[Resume]', 'ResumeHeroEffect missing — hero-effect.js not loaded?');
-    }
+    const mdPromise = loadMarkdown(site);
+
+    scheduleResumeHeroEffect(site);
     updateSourceLinkHref(site);
     initLangSwitcher(site);
-    initRightbar(site);
+    const weatherKickoff = initRightbar(site, { deferWeather: true });
     applyI18n();
     refreshFooterBuiltLine();
 
     let md;
     try {
-      md = await loadMarkdown(site);
+      md = await mdPromise;
     } catch (err) {
       console.error('[Resume] load failed:', err);
       showLoadError(err);
@@ -247,6 +285,8 @@
     bindPrintButton();
     bindRightbarDrawer();
     refreshFooterBuiltLine();
+
+    scheduleDeferredWeatherKickoff(weatherKickoff);
   }
 
   function initLangSwitcher(site) {
@@ -1077,14 +1117,16 @@
      Right sidebar — orchestrator
      ========================================================================= */
 
-  function initRightbar(site) {
-    if (!$('#rightbar')) return;
+  function initRightbar(site, options) {
+    if (!$('#rightbar')) return null;
+    const deferWeather = options && options.deferWeather;
     initClockWidget();
-    initWeatherWidget(site && site.weather);
+    const weatherKickoff = initWeatherWidget(site && site.weather, { deferInitialLoad: !!deferWeather });
     initThemeCardWidget();
     initRadarWidget(site && site.skillsRadar);
     initNowWidget(site && site.now);
     initContactWidget(site && site.contact);
+    return weatherKickoff;
   }
 
   /* ---------- Clock + greeting ---------- */
@@ -1143,9 +1185,10 @@
 
   /* ---------- Weather ---------- */
 
-  function initWeatherWidget(weatherCfg) {
+  function initWeatherWidget(weatherCfg, options) {
+    const deferInitial = options && options.deferInitialLoad;
     const root = $('#w-weather');
-    if (!root) return;
+    if (!root) return null;
     const status = root.querySelector('.widget-status');
     const body = root.querySelector('.widget-body');
     const refreshBtn = root.querySelector('#btn-weather-refresh');
@@ -1463,12 +1506,19 @@
       }
     }
 
-    loadWeather(false);
+    if (!deferInitial) {
+      loadWeather(false);
+    }
     if (refreshBtn) {
       refreshBtn.onclick = () => {
         loadWeather(true);
       };
     }
+    return deferInitial
+      ? () => {
+          loadWeather(false);
+        }
+      : null;
   }
 
   function wmoMeta(code) {
