@@ -1,0 +1,165 @@
+{
+  "meta": {
+    "title": "Jackson Hu · AIPM Resume",
+    "description": "Jackson Hu · AI 產品經理（AIPM）個人履歷"
+  },
+  "loading": { "resume": "正在載入履歷…", "widget": "載入中…" },
+  "actions": {
+    "widgets": "小工具",
+    "widgetsTitle": "開啟側邊小工具（天氣、聯絡方式等）",
+    "widgetsAria": "開啟側邊小工具",
+    "themeTitle": "切換主題：自動／淺色／深色",
+    "themeAria": "主題與外觀",
+    "printTitle": "匯出／列印 PDF",
+    "printAria": "匯出或列印為 PDF",
+    "print": "下載 PDF",
+    "sourceTitle": "查看 Markdown 原始檔",
+    "sourceAria": "於新分頁開啟目前語言的 Markdown 原始檔",
+    "source": "MD 原始檔"
+  },
+  "toolbarAria": "頁面操作",
+  "toc": { "title": "目錄", "asideAria": "目錄導覽" },
+  "rightbar": {
+    "asideAria": "側邊小工具",
+    "clockAria": "時鐘與問候",
+    "weatherAria": "天氣預報",
+    "themeAria": "主題模式",
+    "radarAria": "技能雷達圖",
+    "nowAria": "Now",
+    "contactAria": "聯絡方式"
+  },
+  "footer": {
+    "built": "使用 Markdown 製作 · © {year} Jackson Hu",
+    "ghpages": "GitHub Pages",
+    "viewSource": "查看原始碼"
+  },
+  "error": {
+    "loadTitle": "履歷載入失敗：",
+    "loadHint": "本機預覽請執行：python -m http.server 8000，然後前往 http://localhost:8000。",
+    "fileProtocol": "透過 file:// 直接開啟 index.html 時，瀏覽器會禁止 fetch 本機檔案。\n請改以 python -m http.server 或部署到 GitHub Pages 後再瀏覽。",
+    "mdLoad": "無法載入 {path}（HTTP {status}）",
+    "weatherLoad": "天氣載入失敗",
+    "weatherRetry": "請稍後再試",
+    "weatherOffline": "離線"
+  },
+  "theme": {
+    "toolbarAuto": "Auto",
+    "toolbarLight": "Light",
+    "toolbarDark": "Dark",
+    "toolbarTitle": "目前：{mode}（實際顯示：{real}）· 點擊切換",
+    "toolbarAria": "主題：{mode}，點擊切換",
+    "cardAuto": "Auto · 跟隨時間",
+    "cardLight": "Light · 已鎖定",
+    "cardDark": "Dark · 已鎖定",
+    "cardDetailAuto": "下次切換 {time} → {next}",
+    "cardDetailLocked": "點擊卡片或右上角按鈕切換",
+    "cardCurrent": "目前：{theme}",
+    "themeDark": "深色",
+    "themeLight": "淺色"
+  },
+  "clock": {
+    "greetingNight": "夜深了 · Late night",
+    "greetingMorning": "早晨 · Good morning",
+    "greetingNoon": "午安 · Good noon",
+    "greetingAfternoon": "午安 · Good afternoon",
+    "greetingEvening": "晚安 · Good evening",
+    "week0": "星期日",
+    "week1": "星期一",
+    "week2": "星期二",
+    "week3": "星期三",
+    "week4": "星期四",
+    "week5": "星期五",
+    "week6": "星期六"
+  },
+  "weather": {
+    "statusLocating": "定位中",
+    "statusGeocode": "解析位置",
+    "statusFetching": "取得中",
+    "statusOk": "已更新",
+    "statusError": "暫不可用",
+    "statusOffline": "離線",
+    "loadingBody": "正在取得位置…",
+    "humidity": "濕度 {rh}%",
+    "geoUnknown": "無法取得地名",
+    "day0": "今日",
+    "day1": "明日",
+    "day2": "後日",
+    "unavailableTitle": "暫不可用",
+    "unavailableDesc": "天氣暫不可用",
+    "forecastNA": "—",
+    "refreshTitle": "重新取得定位與天氣",
+    "refreshAria": "重新取得定位與天氣"
+  },
+  "wmo": {
+    "0": "天晴",
+    "1": "大致天晴",
+    "2": "部分多雲",
+    "3": "陰",
+    "45": "霧",
+    "48": "凍霧",
+    "51": "微雨",
+    "53": "毛毛雨",
+    "55": "大毛毛雨",
+    "56": "凍毛毛雨",
+    "57": "強凍毛毛雨",
+    "61": "小雨",
+    "63": "中雨",
+    "65": "大雨",
+    "66": "凍雨",
+    "67": "強凍雨",
+    "71": "小雪",
+    "73": "中雪",
+    "75": "大雪",
+    "77": "雪粒",
+    "80": "驟雨",
+    "81": "中驟雨",
+    "82": "大驟雨",
+    "85": "小驟雪",
+    "86": "大驟雪",
+    "95": "雷雨",
+    "96": "雷雨伴有小冰雹",
+    "99": "雷雨伴有大冰雹",
+    "unknown": "未知"
+  },
+  "contact": {
+    "wechatCopy": "WeChat · 點擊複製",
+    "wechatCopied": "已複製",
+    "wechatFail": "複製失敗"
+  },
+  "resume": {
+    "keywordLabel": "關鍵字：",
+    "chipPhoneAria": "電話，點擊查看及複製",
+    "chipEmailAria": "電郵，點擊查看及複製",
+    "chipTitle": "點擊查看及複製",
+    "chipUnlock": "點擊顯示",
+    "chipShown": "已顯示 · 點擊複製",
+    "chipCopied": "已複製 ✓",
+    "chipCopyFail": "複製失敗",
+    "chipCopyAgain": "點擊複製"
+  },
+  "now": { "updatedLabel": "UPDATED ·" },
+  "radar": { "svgAria": "技能雷達圖" },
+  "widgets": {
+    "eyebrowWeather": "WEATHER",
+    "eyebrowMode": "MODE",
+    "eyebrowRadar": "SKILLS · RADAR",
+    "eyebrowNow": "// NOW",
+    "eyebrowContact": "CONTACT"
+  },
+  "nowWidget": {
+    "items": [
+      { "label": "求職狀態", "text": "開放新機會，可隨時到職" },
+      { "label": "新型 AI 概念項目", "text": "3D 數碼影棚" },
+      { "label": "學習中", "text": "Agent skills、生成式通用 Eval 體系" },
+      { "label": "閱讀中", "text": "《Generative Deep Learning》by O’Reilly" }
+    ]
+  },
+  "radarDims": {
+    "ai_product": "AI 產品",
+    "backend": "後端工程",
+    "frontend": "前端工程",
+    "collab": "跨團隊協作",
+    "docs": "文件表達"
+  },
+  "contactLinks": [{ "label": "電郵" }, { "label": "GitHub" }]
+}

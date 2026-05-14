@@ -12,7 +12,7 @@
   const $$ = (sel, root) => Array.from((root || document).querySelectorAll(sel));
 
   const LOCALE_STORAGE_KEY = 'resume-locale';
-  const SUPPORTED_LOCALES = ['zh-CN', 'en', 'ja'];
+  const SUPPORTED_LOCALES = ['zh-CN', 'zh-HK', 'en', 'ja'];
   const DEFAULT_LOCALE = 'zh-CN';
   const SOURCE_REPO_BASE = 'https://github.com/Doveboy13/Doveboy13.github.io/blob/main/';
   let i18nMessages = {};
@@ -60,10 +60,18 @@
 
   function getLocale() {
     try {
-      const v = localStorage.getItem(LOCALE_STORAGE_KEY);
+      let v = localStorage.getItem(LOCALE_STORAGE_KEY);
+      if (v === 'zh-TW') {
+        v = 'zh-HK';
+        try {
+          localStorage.setItem(LOCALE_STORAGE_KEY, v);
+        } catch (e) { /* noop */ }
+      }
       if (SUPPORTED_LOCALES.includes(v)) return v;
     } catch (e) { /* noop */ }
     const nav = (navigator.language || '').toLowerCase();
+    if (nav === 'zh-hk' || nav.startsWith('zh-hk')) return 'zh-HK';
+    if (nav === 'zh-tw' || nav === 'zh-hant') return 'zh-HK';
     if (nav.startsWith('zh')) return 'zh-CN';
     if (nav.startsWith('ja')) return 'ja';
     return 'en';
@@ -71,15 +79,21 @@
 
   function syncLocaleDom(loc) {
     const v = SUPPORTED_LOCALES.includes(loc) ? loc : DEFAULT_LOCALE;
-    document.documentElement.lang = v === 'zh-CN' ? 'zh-CN' : v === 'ja' ? 'ja' : 'en';
+    document.documentElement.lang = v === 'zh-CN' ? 'zh-CN' : v === 'zh-HK' ? 'zh-HK' : v === 'ja' ? 'ja' : 'en';
     document.documentElement.setAttribute('data-locale', v);
     const cur = $('#btn-lang .lang-current');
-    const short = { 'zh-CN': '中文', en: 'English', ja: '日本語' };
+    const short = {
+      'zh-CN': '简体中文',
+      'zh-HK': '繁體中文',
+      en: 'English',
+      ja: '日本語',
+    };
     if (cur) cur.textContent = short[v] || v;
   }
 
   function setLocaleStorage(loc) {
-    const v = SUPPORTED_LOCALES.includes(loc) ? loc : DEFAULT_LOCALE;
+    const raw = loc === 'zh-TW' ? 'zh-HK' : loc;
+    const v = SUPPORTED_LOCALES.includes(raw) ? raw : DEFAULT_LOCALE;
     try {
       localStorage.setItem(LOCALE_STORAGE_KEY, v);
     } catch (e) { /* noop */ }
@@ -126,6 +140,7 @@
   const DEFAULT_SITE_CONFIG = {
     resumeMarkdown: {
       'zh-CN': 'Resume-AIPM-Jackson.md',
+      'zh-HK': 'Resume-AIPM-Jackson-zh-HK.md',
       en: 'Resume-AIPM-Jackson-en.md',
       ja: 'Resume-AIPM-Jackson-ja.md',
     },
@@ -1160,7 +1175,7 @@
 
     const formatClockDate = (d, dayLabel) => {
       const loc = getLocale();
-      if (loc === 'zh-CN') {
+      if (loc === 'zh-CN' || loc === 'zh-HK') {
         return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日 · ${dayLabel}`;
       }
       const intl = loc === 'ja' ? 'ja-JP' : 'en-US';
@@ -1326,6 +1341,7 @@
       const loc = getLocale();
       if (loc === 'ja') return 'ja';
       if (loc === 'en') return 'en';
+      if (loc === 'zh-HK') return 'zh-HK';
       return 'zh';
     }
 
@@ -1333,6 +1349,7 @@
       const loc = getLocale();
       if (loc === 'ja') return 'ja, en;q=0.8';
       if (loc === 'en') return 'en, zh;q=0.5';
+      if (loc === 'zh-HK') return 'zh-HK, zh-Hant-HK;q=0.95, zh-Hant;q=0.93, zh;q=0.9, en;q=0.8';
       return 'zh-CN, zh;q=0.9, en;q=0.8';
     }
 
