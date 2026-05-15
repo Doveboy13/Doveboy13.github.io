@@ -150,7 +150,7 @@
     "items": [
       { "label": "求職状況", "text": "新しい機会を検討中 · すぐに着任可" },
       { "label": "コンセプト案件", "text": "3D バーチャルスタジオ" },
-      { "label": "学習中", "text": "Agent skills、生成系 Eval 体系" },
+      { "label": "学習中", "text": "Agent skills、Harness Engineering" },
       { "label": "読書中", "text": "『Generative Deep Learning』O’Reilly" }
     ]
   },

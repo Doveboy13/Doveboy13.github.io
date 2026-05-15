@@ -150,7 +150,7 @@
     "items": [
       { "label": "求職狀態", "text": "開放新機會，可隨時到職" },
       { "label": "新型 AI 概念項目", "text": "3D 數碼影棚" },
-      { "label": "學習中", "text": "Agent skills、生成式通用 Eval 體系" },
+      { "label": "學習中", "text": "Agent skills、Harness Engineering" },
       { "label": "閱讀中", "text": "《Generative Deep Learning》by O’Reilly" }
     ]
   },
